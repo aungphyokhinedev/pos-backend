@@ -1,0 +1,23 @@
+
+{
+	"mongo_uri":  "mongodb+srv://root:12345@cluster0-qmila.mongodb.net/micro-sso?retryWrites=true&w=majority",
+	"mongo_uri2": "mongodb://localhost:27017,localhost:27018,localhost:27019/micro-sso?replicaSet=rs",
+	"admin_email": "aungphyokhine.dev@gmail.com",
+	"daily_limit":500,
+	"hourly_limit":50,
+	"monthly_limit":1000,
+	"account_run_with_transaction":true,
+	"account_lower_limit":0,
+	"account_upper_limit":10000000,
+	"account_allow_no_rule":true,
+	"account_lock":"ACCOUNT_LOCK",
+	"lock_check_count":0,
+	"lock_try_count":100,
+	"file_upload_path":"./upload",
+	"google_clients_ids": ["547685743563-48jqeisopdj6p3hadr4uesgh0f5dmn16.apps.googleusercontent.com","128401881974-7pe3l699aafmpb5oco0on1p970c3q3ka.apps.googleusercontent.com"],
+	"gmail_client_id":"750141532562-bglsvv5k3buof4u9j51dnpq85jv95jih.apps.googleusercontent.com",
+	"gmail_client_secret":"E-prH9xCf5bUMHvmWsH1JKZb",
+	"gmail_refresh_token":"1//04ziVX-KFs8LbCgYIARAAGAQSNwF-L9Irhk1ZJcEZQRf6r7n5EDRgst2-i552817-05S17uGobOJGSPG3MfDVLhxCcxA206_xA_M",
+	"gmail_user":"cybernetics.noreply@gmail.com",
+	"gmail_redirect_url":"https://developers.google.com/oauthplayground"
+}
