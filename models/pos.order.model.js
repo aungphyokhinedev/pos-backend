@@ -42,7 +42,7 @@ let POSOrderSchema = new Schema({
 		type: Date,  index: true
 	},
 	date: {
-		type: Date, default: new Date(), index: true
+		type: Date, default: Date.now, index: true
 	},
 	status: {
 		type: String,
@@ -88,6 +88,24 @@ let POSOrderSchema = new Schema({
     location: {
 		type: pointSchema,
 		index: true
+	},
+	taxAmount: {
+		type: Number,
+		default: 0
+	},
+	discountAmount: {
+		type: Number,
+		default: 0
+	},
+	discount: {
+		type: Schema.Types.ObjectId, 
+		ref: "posdiscount",
+		index: true,
+	},
+	tax: {
+		type: Schema.Types.ObjectId, 
+		ref: "postax",
+		index: true,
 	},
 	total: {
 		type: Number,

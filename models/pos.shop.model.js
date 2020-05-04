@@ -15,7 +15,8 @@ let POSShopSchema = new Schema({
 		ref: "posowner",
 		index: true,
 		required: "Owner ID is required",
-    },
+	},
+	
 	name: {
 		type: String,
 		trim: true,
@@ -28,6 +29,16 @@ let POSShopSchema = new Schema({
 		trim: true,
 		index: true,
 		required: "Description is required"
+	},
+	tax: {
+		type: Schema.Types.ObjectId, 
+        ref: "postax",
+		index: true,
+	},
+	discount: {
+		type: Schema.Types.ObjectId, 
+        ref: "posdiscount",
+		index: true,
     },
     logo: {
 		type: String,

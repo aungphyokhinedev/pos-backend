@@ -30,7 +30,7 @@ module.exports = {
             "customer": {
 				action: "v1.poscustomer.get",
 				params: {
-					fields: "name _id"
+					fields: "name _id customerId" 
 				}
             },
             "shop": {

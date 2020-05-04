@@ -36,7 +36,7 @@ module.exports = {
             "discount": {
 				action: "v1.posdiscount.get",
 				params: {
-					fields: "name  _id"
+					fields: "name flatRate percentage _id"
 				}
             },
             "category": {

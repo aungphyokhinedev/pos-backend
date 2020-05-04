@@ -1,12 +1,15 @@
 
 "use strict";
+const DbService = require("moleculer-db");
 const authorizationMixin = require("../mixin/authorization.mixin");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
+const {calculateCharge} = require("../common/calculate.helper");
+const _publicCollections = ["posshop","positem","posshopitem","posrating","posreview","possaledetail"];
 module.exports = {
 	name: "pospublic",
 	version: 1,
-	mixins: [authorizationMixin],
+	mixins: [DbService,authorizationMixin],
 	settings: {
 		failLimit: 5,
 	},
@@ -69,9 +72,7 @@ module.exports = {
 			params: {
 			},
 			async handler(ctx) {
-				const _customer = await this.getCustomer(ctx);
-				// eslint-disable-next-line require-atomic-updates
-				ctx.params.owner = _customer._id;
+				console.log("getbyid",ctx.params);
 				return await this.getByID(ctx);
 			}
 		},
@@ -97,24 +98,17 @@ module.exports = {
 			},
 			async handler(ctx) {
 				
-				if(ctx.params.public){
-					const _publicCollections = ["posshop","positem","posshopitem"];
-					if(_publicCollections.indexOf(ctx.params.collection.toLowerCase()) == -1){
-						throw "Permission not allowed";
-					}
-				}
-				else{
+				const _publicData = _publicCollections.indexOf(ctx.params.collection.toLowerCase()) >= 0;
+				if(!_publicData){
 					const _customer = await this.getCustomer(ctx);
 				
 					let _query = Object.assign({},ctx.params.query);
 					_query.customer = _customer._id;
 					// eslint-disable-next-line require-atomic-updates
 					ctx.params.query = _query;
-				
-				
 				}
 				
-				
+		
 
 				return await this.getItems(ctx);
 			}
@@ -140,12 +134,35 @@ module.exports = {
 			params: {
 			},
 			async handler(ctx) {
+				
 				const _customer = await this.getCustomer(ctx);
 				// eslint-disable-next-line require-atomic-updates
 				ctx.params.customer = _customer._id;
 				return await this.orderItems(ctx);
 			}
-		}
+		},
+		totalrank: {
+			params: {
+			},
+			async handler(ctx) {
+				return await this.totalRank(ctx);
+			}
+		},
+		addreview: {
+			params: {
+			},
+			async handler(ctx) {
+				const _customer = await this.getCustomer(ctx);
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.customer = _customer._id;
+				const _shopitem = await ctx.call("v1.posshopitem.get", {id:ctx.params.transactionID
+				});
+				if(!_shopitem) throw "Owner not found";
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.owner = _shopitem.owner;
+				return await this.addReview(ctx);
+			}
+		},
 
 	},
 	hooks: {
@@ -167,6 +184,7 @@ module.exports = {
 	 * Methods
 	 */  
 	methods: {
+		
 		async getAccount(ctx) {
 			const _account = await ctx.call("v1.auth.get", {
 				id: ctx.params.uid
@@ -174,9 +192,8 @@ module.exports = {
 			return _account;
 		},
 		async getCustomer(ctx) {
-		
 			const _customer = await ctx.call("v1.poscustomer.find", {
-				query: { customer: ObjectId(ctx.params.uid) }
+				query: { customer: ctx.params.uid + "" }
 			});
 			return _customer[0];
 
@@ -193,7 +210,7 @@ module.exports = {
 		},
 		async getByID(ctx) {
 			const _collection = ctx.params.collection;
-			return await ctx.call("v1." + _collection + ".get", { id: ctx.params.id, owner: ctx.params.owner });
+			return await ctx.call("v1." + _collection + ".get", { id: ctx.params.id });
 		},
 		async mapItems(ctx) {
 			const _collection = ctx.params.collection;
@@ -228,9 +245,6 @@ module.exports = {
 			return { rows:_items, hasNext:_hasNext, page:_page,pageSize:_pageSize, totalPages: Math.ceil(_items.length / _pageSize) };
 		},
 		async getItems(ctx) {
-
-			console.log("noties params",ctx.params);
-			
 			const _collection = ctx.params.collection;  
 			return await ctx.call("v1." + _collection + ".list", ctx.params);
 		},
@@ -253,6 +267,7 @@ module.exports = {
 				throw "Customer not found";
 			}
 			const _shops = await ctx.call("v1.posshop.find", {
+				populate:["discount","tax"],
 				query: { 
 					_id: ctx.params.shop
 				} 
@@ -262,24 +277,40 @@ module.exports = {
 				throw "Shop not found";
 			}
 
-			
+			 
 			const _shop = _shops[0];
 			const _ids = ctx.params.items.map(item=>ObjectId(item._id));
 			
 			const _shopitems = await ctx.call("v1.posshopitem.find", {
+				populate:["discount"],
 				query: { 
 					_id: { $in: _ids },
-					shop: ObjectId(ctx.params.shop)
+					//shop: ObjectId(ctx.params.shop)
 				} 
 			});
+
+			const _blacklist = await ctx.call("v1.posblacklist.find", {
+				query: { 
+					customer:ctx.params.customer,
+					owner: _shop.owner,
+					deleteFlag: false
+				} 
+			});
+
+			if(_blacklist.length > 0) throw "Orders does not allowed. [" + _blacklist[0].description + "]";
+
 		
 		
 			const _items = _shopitems.map(item=>{
 				const _item = ctx.params.items.filter(_item=>item._id == _item._id);
 			
 				if(_item && _item.length > 0 && _item[0].qty > 0){
+
+					const _discount =  calculateCharge(item.unitPrice,item.discount);
 					item.qty = _item[0].qty;
-					item.total = _item[0].total;
+					item.total = _discount.totalAmount * _item[0].qty;
+					item.discount = item.disocunt ? item.disocunt._id : null;
+					item.discountAmount =  _discount.totalAmount;
 					return item;
 				}
 			});
@@ -288,9 +319,11 @@ module.exports = {
 				throw "Invalid order items";
 			}
 			const _total = _items.reduce((total,item)=>{
-				return total + (item.qty * item.total);
+				return total +  item.total;
 			},0);
-		
+			const _discount = (await calculateCharge(_total,_shop.discount)).totalRate;
+			const _tax = calculateCharge(_total,_shop.tax).totalRate;
+
 			const _orderno = Date.now();
 			let _order = {
 				customer: ctx.params.customer,
@@ -302,7 +335,13 @@ module.exports = {
 				address:ctx.params.user.address,
 				location:ctx.params.user.location,
 				status: "pending",
-				total: _total
+				tax: _shop.tax ? _shop.tax._id : null,
+				taxAmount: _tax,
+				discount: _shop.discount ? _shop.discount._id : null,
+				discountAmount: _discount,
+				total: _total - _discount + _tax,
+				date: Date.now()
+
 
 			};
 			const _result = await ctx.call("v1.posorder.create",  
@@ -343,9 +382,17 @@ module.exports = {
 
 
 		},
+		totalRank(ctx) {
+			return ctx.call("v1.posranking.total",ctx.params);
+		},
 		async setNoti(ctx, params) {
 			await ctx.call("v1.possocket.broadcast",params);
 			await ctx.call("v1.posnoti.create",params.data);
+		},
+		async addReview(ctx) {
+			const _result = await ctx.call("v1.posreview.create",
+				ctx.params);
+			return _result;
 		},
 
 	},

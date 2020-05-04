@@ -31,3 +31,5 @@ docker logs microsso
 docker run -d --name microsso  microsso
 docker build -t microsso .
 docker-compose up -d
+docker exec container env
+docker exec -ti web1 ping web2

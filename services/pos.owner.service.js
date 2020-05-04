@@ -32,6 +32,12 @@ module.exports = {
 				params: {
 					fields: "email _id"
 				}
+			},
+			"currency": {
+				action: "v1.poscurrency.get",
+				params: {
+					fields: "name code sign _id"
+				}
             },
 		}
 	},

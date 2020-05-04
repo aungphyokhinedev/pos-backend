@@ -15,7 +15,13 @@ let POSSaleDetailSchema = new Schema({
 		ref: "posuser",
 		index: true,
 		required: "Sale User ID is required",
-    },
+	},
+	shop: {
+		type: Schema.Types.ObjectId, 
+		ref: "posshop",
+		index: true,
+		required: "Shop ID is required",
+	},
 	owner: {
 		type: Schema.Types.ObjectId, 
 		ref: "posowner",

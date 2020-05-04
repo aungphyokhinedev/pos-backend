@@ -7,7 +7,7 @@ const { ForbiddenError } = require("moleculer-web").Errors;
 const settings = require("../config/settings.json");
 const ssouserModel = require("../models/ssouser.model");
 const authorizationMixin = require("../mixin/authorization.mixin");
-
+require("events").EventEmitter.prototype._maxListeners = 100;
 module.exports = {
 	name: "auth",
 	version: 1,
@@ -112,6 +112,8 @@ module.exports = {
 				}
 
 				if (_login.success) {
+
+
 					// checking email is already used
 					const _existinguser = await this.findByEmail(_login.data.email);
 		
@@ -122,7 +124,16 @@ module.exports = {
 						//generating random password
 						const _randompassword = await ctx.call("v1.crypto.generatePassword", {length:7});
 						//hashing password
-						_login.data.password = await ctx.call("v1.crypto.hashedPassword",{data:_randompassword,saltRounds:10});			
+						_login.data.password = await ctx.call("v1.crypto.hashedPassword",{data:_randompassword,saltRounds:10});	
+						
+						if(_login.data.photoUrl){
+							const _file = await  ctx.call("v1.file.download",{
+								url: _login.data.photoUrl
+							});
+							_login.data.photoUrl = _file;
+							console.log("file name", _file);
+						}
+
 						const _user = await  ctx.call("v1.auth.create",_login.data);
 						return this.setLogin(ctx,_user);
 						

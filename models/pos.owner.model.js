@@ -16,6 +16,11 @@ let POSOwnerSchema = new Schema({
         unique : true,
 		index: true,
 		required: "Owner is required",
+	},
+	currency: {
+		type: Schema.Types.ObjectId, 
+        ref: "poscurrency",
+		index: true,
     },
 	companyName: {
 		type: String,

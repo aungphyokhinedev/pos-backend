@@ -1,14 +1,16 @@
 
 "use strict";
+const DbService = require("moleculer-db");
 const { ForbiddenError } = require("moleculer-web").Errors;
 const authorizationMixin = require("../mixin/frontend.authorization.mixin");
 const passwordMixin = require("../mixin/password.mixin");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
+const {calculateCharge} = require("../common/calculate.helper");
 module.exports = {
 	name: "posfrontend",
 	version: 1,
-	mixins: [authorizationMixin, passwordMixin],
+	mixins: [DbService,authorizationMixin, passwordMixin],
 	settings: {
 		failLimit: 5,
 	},
@@ -47,7 +49,7 @@ module.exports = {
 			params: {
 			},
 			async handler(ctx) {
-
+			
 				// eslint-disable-next-line require-atomic-updates
 				ctx.params.query.owner = ctx.params.owner;
 				return await this.getItems(ctx);
@@ -72,6 +74,13 @@ module.exports = {
 			},
 			async handler(ctx) {
 				return await this.getCustomer(ctx);
+			}
+		},
+		shop: {
+			params: {
+			},
+			async handler(ctx) {
+				return await this.getShop(ctx);
 			}
 		},
 		changepassword: {
@@ -126,6 +135,7 @@ module.exports = {
 			"shop": ["checkUser"],
 			"changepassword": ["checkUser"],
 			"updateuser": ["checkUser"],
+			"updateitem": ["checkUser"],
 			"orderprocess": ["checkUser"],
 		},
 		after: {
@@ -144,7 +154,8 @@ module.exports = {
 	 */
 	methods: {
 		async getItems(ctx) {
-			console.log(ctx.params);
+			console.log("getitems",ctx.params);
+			
 			const _collection = ctx.params.collection;
 			return await ctx.call("v1." + _collection + ".list", ctx.params);
 		},
@@ -154,8 +165,18 @@ module.exports = {
 			return _user;
 		},
 		async getCustomer(ctx) {
-			const _customers = await ctx.call("v1.poscustomer.find", { query: { customer: ctx.params.uid } });
+			const _customers = await ctx.call("v1.poscustomer.find", { query: ctx.params.query });
 			return _customers[0];
+		},
+		async getShop(ctx) {
+		
+			const _user = await ctx.call("v1.posuser.get", { id: ctx.params.user });
+			const _shop = await ctx.call("v1.posshop.find", {
+				populate:["tax","discount"],	query: { _id: _user.shop }
+			});
+			return _shop[0];
+			
+		
 		},
 		async updateUser(ctx) {
 
@@ -201,9 +222,70 @@ module.exports = {
 				throw "User not found";
 			}
 
-			let _sale = Object.assign({}, ctx.params);
-			_sale.status = "pending";
-			_sale.shop = _users[0].shop;
+			const _shops = await ctx.call("v1.posshop.find", {
+				populate:["discount","tax"],
+				query: { 
+					_id: _users[0].shop
+				} 
+			});
+
+			if(_shops.length == 0){
+				throw "Shop not found";
+			}
+
+			const _shop = _shops[0];
+			const _ids = ctx.params.items.map(item=>ObjectId(item._id));
+			
+			const _shopitems = await ctx.call("v1.positem.find", {
+				populate:["discount"],
+				query: { 
+					_id: { $in: _ids }
+				} 
+			});
+			const _items = _shopitems.map(item=>{
+				const _item = ctx.params.items.filter(_item=>item._id == _item._id);
+			
+				if(_item && _item.length > 0 && _item[0].qty > 0){
+
+					const _discount =  calculateCharge(item.unitPrice,item.discount);
+					item.qty = _item[0].qty;
+					item.total = _discount.totalAmount * _item[0].qty;
+					item.discount = item.disocunt ? item.disocunt._id : null;
+					item.discountAmount =  _discount.totalAmount;
+					return item;
+				}
+			});
+			if(!_items || _items.length == 0){
+				throw "Invalid sale items";
+			}
+			const _total = _items.reduce((total,item)=>{
+				return total +  item.total;
+			},0);
+			const _discount = (await calculateCharge(_total,_shop.discount)).totalRate;
+			const _tax = calculateCharge(_total,_shop.tax).totalRate;
+
+			console.log(ctx.params);
+		
+			const _invno = Date.now();
+			let _sale = {
+				user: ctx.params.user,
+				owner: ctx.params.owner,
+				invoiceNumber :_invno, 
+				shop: _shop._id,
+				status: "pending",
+				name: ctx.params.name,
+				remark: ctx.params.remark,
+				adjustment: ctx.params.adjustment,
+				adjustmentRemark: ctx.params.adjustmentRemark,
+				tax: _shop.tax ? _shop.tax._id : null,
+				taxAmount: _tax,
+				discount: _shop.discount ? _shop.discount._id : null,
+				discountAmount: _discount,
+				total: _total - _discount + _tax,
+				date: Date.now() 
+			};
+	
+			
 			const _result = await ctx.call("v1.possale.create",
 				_sale);
 
@@ -215,7 +297,8 @@ module.exports = {
 				_saleitem.owner = ctx.params.owner;
 				_saleitem.user = ctx.params.user;
 				_saleitem.item = _item._id;
-				_saleitem.invoiceNumber = ctx.params.invoiceNumber;
+				_saleitem.shop = _users[0].shop;
+				_saleitem.invoiceNumber = _invno;
 				await ctx.call("v1.possaledetail.create",
 					_saleitem);
 			}
@@ -242,7 +325,11 @@ module.exports = {
 					if (_valid) {
 
 						let _loginUser = Object.assign({}, _users[0]);
-						_loginUser.password = null;
+						
+						if(_loginUser.delete) throw "User is deleted";
+						if(_loginUser.locked) throw "User is locked";
+						if(_loginUser.block) throw "User is blocked";
+
 						const _accessToken = await ctx.call("v1.jwt.signToken", {
 							data: {
 								_id: _owners[0].owner,
@@ -254,7 +341,22 @@ module.exports = {
 						ctx.meta.$responseHeaders = {
 							"accessToken": _accessToken
 						};
-						return _loginUser;
+						
+						const _user = {
+							createdAt: _loginUser.createdAt,
+							description: _loginUser.description,
+							email: _loginUser.email,
+							fullName: _loginUser.fullName,
+							mobile: _loginUser.mobile,
+							name: _loginUser.name,
+							owner: _loginUser.owner,
+							photo: _loginUser.photo,
+							shop: _loginUser.shop,
+							uid: _loginUser.uid,
+							_id: _loginUser._id
+						};
+
+						return _user;
 					}
 					else {
 						return new ForbiddenError("Invalid password");
@@ -380,6 +482,7 @@ module.exports = {
 			return await ctx.call("v1." + _collection + ".get", { id: ctx.params.id, owner: ctx.params.owner });
 		},
 		async updateItem(ctx) {
+			console.log("updateite", ctx.params);
 			const _collection = ctx.params.collection;
 			const _result = await ctx.call("v1." + _collection + ".update",
 				ctx.params);

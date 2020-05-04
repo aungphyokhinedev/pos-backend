@@ -59,6 +59,9 @@ let POSShopItemSchema = new Schema({
 		trim: true,
 		index: true,
 	},
+	disable: {
+		type: Boolean, default: false, index: true
+	},
     deliveryCharge: {
 		type: Number,
 		default: 0
@@ -76,5 +79,5 @@ POSShopItemSchema.index({
 });
 
 
-POSShopItemSchema.index({ shop:1,  item: 1}, { unique: true });
+
 module.exports = mongoose.model("POSShopItem", POSShopItemSchema);

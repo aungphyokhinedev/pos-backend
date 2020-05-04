@@ -4,6 +4,7 @@ const authorizationMixin = require("../mixin/authorization.mixin");
 const passwordMixin = require("../mixin/password.mixin");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
+const allowPublicCollection = ["posowner","poscurrency","poscustomer"];
 module.exports = {
 	name: "posadmin",
 	version: 1,
@@ -97,9 +98,16 @@ module.exports = {
 			params: {
 			},
 			async handler(ctx) {
-				const _owner = await this.getOwner(ctx);
-				// eslint-disable-next-line require-atomic-updates
-				ctx.params.query.owner = _owner._id;
+				if(ctx.params.public){
+				   const _notvalid = allowPublicCollection.indexOf(ctx.params.collection.toLowerCase()) < 0;
+				   if(_notvalid) throw "Permission not allow";
+				}
+				else{
+					const _owner = await this.getOwner(ctx);
+					// eslint-disable-next-line require-atomic-updates
+					ctx.params.query.owner = _owner._id;
+				}
+				
 				return await this.getItems(ctx);
 			}
 		},
@@ -166,7 +174,7 @@ module.exports = {
 		async getOwner(ctx) {
 			
 			const _owner = await ctx.call("v1.posowner.find", {
-				query: { owner: ObjectId(ctx.params.uid) } 
+			  populate:"currency",	query: { owner: ObjectId(ctx.params.uid) } 
 			});
 			if(_owner) {
 				return _owner[0];
@@ -219,6 +227,10 @@ module.exports = {
 		},
 		async updateItem(ctx) {
 			const _collection = ctx.params.collection;
+			const _owner = await this.getOwner(ctx);
+			const _update = await ctx.call("v1."+_collection+".get", {id:ctx.params._id});
+			if(_owner._id != _update.owner) throw "Update premission fail";
+			
 			const _result = await ctx.call("v1."+_collection+".update",  
 				ctx.params);
 			return _result;

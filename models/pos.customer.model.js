@@ -67,7 +67,10 @@ let POSCustomerSchema = new Schema({
 }, {
 	timestamps: true
 });
-
+POSCustomerSchema.index({
+	"name": "text",
+	"customerId": "text",
+});
 
 POSCustomerSchema.index({location: "2dsphere"});
 module.exports = mongoose.model("POSCustomer", POSCustomerSchema);

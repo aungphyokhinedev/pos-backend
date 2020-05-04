@@ -1,7 +1,7 @@
 "use strict";
 const SocketIOService = require("moleculer-io");
 const ApiGateway = require("moleculer-web");
-require("events").EventEmitter.prototype._maxListeners = 100;
+//require("events").EventEmitter.prototype._maxListeners = 100;
 module.exports = {
 	name: "api",
 	mixins: [ApiGateway, SocketIOService],
@@ -359,6 +359,13 @@ module.exports = {
 				"REST pos/noti": "v1.posnoti",
 				"POST pos/noti/list": "v1.posnoti.list",
 
+				"REST pos/review": "v1.posreview",
+				"POST pos/review/list": "v1.posreview.list",
+
+				"REST pos/ranking": "v1.posranking",
+				"POST pos/ranking/list": "v1.posranking.list",
+				
+
 				"POST pos/admin/account": "v1.posadmin.getaccount",
 				"POST pos/admin/update/account": "v1.posadmin.updateaccount",
 				"POST pos/admin/owner": "v1.posadmin.getowner",
@@ -382,6 +389,7 @@ module.exports = {
 				"POST pos/front/user": "v1.posfrontend.user",
 				"POST pos/front/user/order/process": "v1.posfrontend.orderprocess",
 				"POST pos/front/get/customer": "v1.posfrontend.customer",
+				"POST pos/front/get/shop": "v1.posfrontend.shop",
 
 				"POST pos/public/account": "v1.pospublic.getaccount",
 				"POST pos/public/customer": "v1.pospublic.getcustomer",
@@ -395,8 +403,9 @@ module.exports = {
 				"POST pos/public/update/item": "v1.pospublic.updateitem",
 				"POST pos/public/map/items": "v1.pospublic.mapitems",
 				"POST pos/public/order/items": "v1.pospublic.orderitems",
-
+				"POST pos/public/total/rank": "v1.pospublic.totalrank",
 				"POST pos/socket/broadcast": "v1.possocket.broadcast",
+				"POST pos/public/add/review": "v1.pospublic.addreview",
 				
 			},
 

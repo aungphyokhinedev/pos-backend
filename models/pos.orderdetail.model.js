@@ -53,6 +53,15 @@ let POSOrderDetailSchema = new Schema({
 		type: Number,
 		default: 0
 	},
+	discountAmount: {
+		type: Number,
+		default: 0
+	},
+	discount: {
+		type: Schema.Types.ObjectId, 
+		ref: "posdiscount",
+		index: true,
+	},
 	status: {
 		type: String,
 		trim: true,

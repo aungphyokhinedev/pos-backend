@@ -73,7 +73,7 @@ let POSUserSchema = new Schema({
 
 POSUserSchema.index({
     "name": "text",
-    "description": "text",
+    "fullName": "text",
 });
 POSUserSchema.index({ owner:1, name:1}, { unique: true });
 module.exports = mongoose.model("POSUser", POSUserSchema);

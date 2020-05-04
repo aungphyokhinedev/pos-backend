@@ -38,7 +38,7 @@ let POSSaleSchema = new Schema({
 		index: true,
 	},
 	date: {
-		type: Date, default: new Date(), index: true
+		type: Date, default: Date.now, index: true
 	},
 	status: {
 		type: String,
@@ -58,10 +58,7 @@ let POSSaleSchema = new Schema({
 		type: String,
 		index: true
 	},
-    tax: {
-		type: Number,
-		default: 0
-	},
+  
     adjustment: {
 		type: Number,
 		default: 0
@@ -69,6 +66,24 @@ let POSSaleSchema = new Schema({
     adjustmentRemark: {
 		type: String,
 		index: true
+	},
+	taxAmount: {
+		type: Number,
+		default: 0
+	},
+	discountAmount: {
+		type: Number,
+		default: 0
+	},
+	discount: {
+		type: Schema.Types.ObjectId, 
+		ref: "posdiscount",
+		index: true,
+	},
+	tax: {
+		type: Schema.Types.ObjectId, 
+		ref: "postax",
+		index: true,
 	},
     total: {
 		type: Number,

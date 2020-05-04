@@ -32,6 +32,18 @@ module.exports = {
 				params: {
 					fields: "name companyName _id"
 				}
+			},
+			"tax": {
+				action: "v1.postax.get",
+				params: {
+					fields: "name flatRate percentage _id"
+				}
+			},
+			"discount": {
+				action: "v1.posdiscount.get",
+				params: {
+					fields: "name flatRate percentage _id"
+				}
             },
 		}
 	},
@@ -62,7 +74,8 @@ module.exports = {
 	},
 	hooks: {
 		before: {
-			"*": ["checkOwner"],		
+			"create": ["checkOwner"],	
+			"remove": ["checkOwner"],	
 		},
 		after: {
 			

@@ -8,6 +8,8 @@ const authorizationMixin = require("../mixin/authorization.mixin");
 const queryMixin = require("../mixin/query.mixin");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
+const axios = require("axios");
+
 
 module.exports = {
 	name: "file",
@@ -39,6 +41,8 @@ module.exports = {
 			async handler(ctx) {
 				return new this.Promise(async(resolve, reject) => {
 					const _file = await this.adapter.findOne({ _id : ctx.params.id}); 
+					
+					
 					await fs.unlink(`${this.settings.uploadFolder}` +"/"+ `${_file.fileName}`, async (err) => {
 						if (err) reject(err);
 						const _file = await ctx.call("v1.file.remove", { id:ctx.params.id});
@@ -49,10 +53,35 @@ module.exports = {
 				});
 			}
 		},
+		download: {
+			params: {
+				url: "string",
+			},
+			async handler(ctx) {
+				const url = ctx.params.url;
+				const fileName = Date.now() + this.randomName();
+				const filePath = path.join(this.settings.uploadFolder, fileName);
+				const writer = fs.createWriteStream(filePath);
+
+				const response = await axios({
+					url,
+					method: "GET",
+					responseType: "stream"
+				});
+
+				response.data.pipe(writer);
+				return new Promise((resolve, reject) => {
+					
+					writer.on("close", () =>resolve(fileName));
+					writer.on("error", err => reject(err));
+				});
+			}
+		},
 		save: {
 			handler(ctx) {
 				return new this.Promise(async(resolve, reject) => {
-					
+
+					if(ctx.params._readableState.length > 50 * 1000) throw "File upload limit exceed";
 					//reject(new Error("example error"));
 					const fileName = Date.now() + "_" + ctx.meta.filename || this.randomName();
 					const filePath = path.join(this.settings.uploadFolder, fileName);
@@ -64,7 +93,7 @@ module.exports = {
 						const _fileSizeInBytes = _stats.size / 1000;
 						
 						const _file = await this.adapter.insert({
-							uid: ctx.params.uid,
+							uid: ctx.params.uid, 
 							name: ctx.meta.filename,
 							fileName,
 							size: _fileSizeInBytes,
@@ -98,7 +127,9 @@ module.exports = {
 
 	hooks: {
 		before: {
-			"*": ["checkOwner"],		
+			"save": ["checkOwner"],	
+			"get": ["checkOwner"],
+			"delete": ["checkOwner"],		
 		},
 		after: {
 			

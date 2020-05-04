@@ -36,7 +36,10 @@ let POSDiscountSchema = new Schema({
 		type: String,
 		trim: true,
 		index: true,
-    },
+	},
+	deleteFlag: {
+		type: Boolean, default: false, index: true
+	},
 }, {
 	timestamps: true
 });
