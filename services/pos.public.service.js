@@ -3,9 +3,11 @@
 const DbService = require("moleculer-db");
 const authorizationMixin = require("../mixin/authorization.mixin");
 const mongoose = require("mongoose");
+const constants = require("../common/constants");
 const ObjectId = mongoose.Types.ObjectId;
 const {calculateCharge} = require("../common/calculate.helper");
-const _publicCollections = ["posshop","positem","posshopitem","posrating","posreview","possaledetail"];
+const _publicCollections = ["posshop","positem","posshopitem",
+	"posrating","posreview","posordertrack","posfavourite","posextrainfo"];
 module.exports = {
 	name: "pospublic",
 	version: 1,
@@ -141,6 +143,17 @@ module.exports = {
 				return await this.orderItems(ctx);
 			}
 		},
+		ordercancel : {
+			params: {
+			},
+			async handler(ctx) {
+				
+				const _customer = await this.getCustomer(ctx);
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.customer = _customer._id;
+				return await this.cancelOrder(ctx);
+			}
+		},
 		totalrank: {
 			params: {
 			},
@@ -163,11 +176,31 @@ module.exports = {
 				return await this.addReview(ctx);
 			}
 		},
-
+		setfavourite: {
+			params: {
+			},
+			async handler(ctx) {
+				return await this.setFavourite(ctx);
+			}
+		},
 	},
 	hooks: {
 		before: {
-			"*": ["checkOwner"],
+			"getaccount":["checkOwner"],
+			"getcustomer":["checkOwner"],
+			"addcustomer":["checkOwner"],
+			"updatecustomer":["checkOwner"],
+			"getbyid":["checkOwner"],
+			"mapitems":["checkOwner"],
+			"finditems":["checkOwner"],
+			"getitems":["checkOwner"],
+			"additem":["checkOwner"],
+			"updateitem":["checkOwner"],
+			"orderitems":["checkOwner"],
+			"ordercancel":["checkOwner"],
+			"addreview":["checkOwner"],
+			"setfavourite":["checkOwner"],
+
 		},
 		after: {
 
@@ -227,8 +260,10 @@ module.exports = {
 
 		},
 		async findItems(ctx) {
-            const _collection = ctx.params.collection;
-            const _page = ctx.params.page || 1;
+
+		
+			const _collection = ctx.params.collection;
+			const _page = ctx.params.page || 1;
 			const _pageSize = ctx.params.pageSize || 10;
 			
 			const _items = await ctx.call("v1."+_collection+".find",
@@ -248,6 +283,7 @@ module.exports = {
 			const _collection = ctx.params.collection;  
 			return await ctx.call("v1." + _collection + ".list", ctx.params);
 		},
+
 		async addItem(ctx) {
 			const _collection = ctx.params.collection;
 			const _result = await ctx.call("v1." + _collection + ".create",
@@ -262,10 +298,14 @@ module.exports = {
 		},
 		async orderItems(ctx) {
 			
-	
+			console.log("Order Items: ",ctx.params);
 			if(ctx.params.customer == 0){
 				throw "Customer not found";
 			}
+
+		
+		
+			//getting  shop info
 			const _shops = await ctx.call("v1.posshop.find", {
 				populate:["discount","tax"],
 				query: { 
@@ -280,7 +320,7 @@ module.exports = {
 			 
 			const _shop = _shops[0];
 			const _ids = ctx.params.items.map(item=>ObjectId(item._id));
-			
+			///getting shop items
 			const _shopitems = await ctx.call("v1.posshopitem.find", {
 				populate:["discount"],
 				query: { 
@@ -289,6 +329,8 @@ module.exports = {
 				} 
 			});
 
+			
+			//black list check
 			const _blacklist = await ctx.call("v1.posblacklist.find", {
 				query: { 
 					customer:ctx.params.customer,
@@ -296,24 +338,59 @@ module.exports = {
 					deleteFlag: false
 				} 
 			});
-
+	
 			if(_blacklist.length > 0) throw "Orders does not allowed. [" + _blacklist[0].description + "]";
-
+			//black list check done
 		
-		
-			const _items = _shopitems.map(item=>{
-				const _item = ctx.params.items.filter(_item=>item._id == _item._id);
-			
-				if(_item && _item.length > 0 && _item[0].qty > 0){
+			const _items = await  Promise.all(ctx.params.items.map(async(requestitem)=>{
 
-					const _discount =  calculateCharge(item.unitPrice,item.discount);
-					item.qty = _item[0].qty;
-					item.total = _discount.totalAmount * _item[0].qty;
-					item.discount = item.disocunt ? item.disocunt._id : null;
-					item.discountAmount =  _discount.totalAmount;
-					return item;
+				const _shopitem = _shopitems.filter(_item=>requestitem._id == _item._id)[0];
+				console.log("item name :", _shopitem.name);
+				if(_shopitem  && requestitem.qty > 0){
+
+					let _extrainfo = null;
+				
+					//for extra info check
+					if(_shopitem.options){
+						if(! requestitem.options) throw "Invalid Options";
+						console.log("finding extra info", _shopitem.name);
+						const _find =  "^" + requestitem.options.split(",").map(item=>{
+							const _split = item.split(":");
+							return _split[0] + ":(" + _split[1] + "|all)";
+						}).join(",");
+
+						_extrainfo = await ctx.call("v1.posextrainfo.find", {
+							query: { 
+								shopItem: _shopitem._id,
+								deleteFlag: false,
+								value:  {'$regex': _find} 
+								//shop: ObjectId(ctx.params.shop)
+							} 
+						});
+
+						_extrainfo = _extrainfo.length > 0 ? _extrainfo[0] : null;
+					}
+					
+					const _unitPrice = (_extrainfo && _extrainfo.unitPrice) ? _extrainfo.unitPrice : _shopitem.unitPrice;
+					const _photo = (_extrainfo && _extrainfo.photo) ? _extrainfo.photo : _shopitem.photo;
+					
+					const _discount =  calculateCharge(
+						_unitPrice,_shopitem.discount);
+					let _newitem = Object.assign({},_shopitem);
+					_newitem.options = requestitem.options,
+					_newitem.photo = _photo;
+					_newitem.qty = requestitem.qty;
+					_newitem.total = _discount.totalAmount * requestitem.qty;
+					_newitem.discount = _shopitem.disocunt ? _shopitem.disocunt._id : null;
+					_newitem.discountAmount =  _discount.totalAmount;
+					
+					console.log("_newitem",_newitem);
+					return _newitem;
 				}
-			});
+				else{
+					throw "invalid order data";
+				}
+			}));
 			
 			if(!_items || _items.length == 0){
 				throw "Invalid order items";
@@ -324,7 +401,13 @@ module.exports = {
 			const _discount = (await calculateCharge(_total,_shop.discount)).totalRate;
 			const _tax = calculateCharge(_total,_shop.tax).totalRate;
 
+
+			
+
 			const _orderno = Date.now();
+
+			console.log("order items", _items);
+			console.log("order no", _orderno);
 			let _order = {
 				customer: ctx.params.customer,
 				shop: ctx.params.shop,
@@ -334,7 +417,7 @@ module.exports = {
 				mobile:ctx.params.user.mobile,
 				address:ctx.params.user.address,
 				location:ctx.params.user.location,
-				status: "pending",
+				status: constants.order_error,
 				tax: _shop.tax ? _shop.tax._id : null,
 				taxAmount: _tax,
 				discount: _shop.discount ? _shop.discount._id : null,
@@ -345,8 +428,8 @@ module.exports = {
 
 			};
 			const _result = await ctx.call("v1.posorder.create",  
-			_order);
-		
+				_order);
+			console.log("order created");
 			for(const _item of _items){
 			
 				let _orderitem = {
@@ -359,9 +442,11 @@ module.exports = {
 					orderNumber: _orderno,
 					total: _item.total,
 					name: _item.name,
+					options: _item.options,
+					photo: _item.photo
 				};
 				await ctx.call("v1.posorderdetail.create",  
-				_orderitem);
+					_orderitem);
 				
 			}
 
@@ -378,8 +463,22 @@ module.exports = {
 			});
 		
 			return await ctx.call("v1.posorder.update",  
-				{_id: _result._id, status:"done"});
+				{_id: _result._id, status:constants.order_pending});
 
+
+		},
+		async cancelOrder(ctx) {
+
+			const _order = await ctx.call("v1.posorder.get", {
+				id: ctx.params._id
+			});
+
+			if (!_order) throw "Order not found";
+			if(_order.status != constants.order_pending) throw "Order status cannot update";
+			if(_order.customer + "" != ctx.params.customer + "") throw "Invalid permission";
+
+			return await ctx.call("v1.posorder.update",  
+				{_id: ctx.params._id, status:"cancel"});
 
 		},
 		totalRank(ctx) {
@@ -394,6 +493,28 @@ module.exports = {
 				ctx.params);
 			return _result;
 		},
+		async setFavourite(ctx){
+
+			const _favourite = await ctx.call("v1.posfavourite.find", {
+				query: { 
+					user: ctx.params.user, transactionID: ctx.params.transactionID
+				} 
+			});
+			if(_favourite.length > 0){
+				const _result = await ctx.call("v1.posfavourite.remove",
+					{id:_favourite[0]._id});
+				return _result;
+			}
+			else{
+				const _result = await ctx.call("v1.posfavourite.create",
+					ctx.params);
+				return _result;
+			}
+				
+			
+			
+
+		}
 
 	},
 

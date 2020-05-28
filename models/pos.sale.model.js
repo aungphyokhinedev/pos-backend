@@ -97,7 +97,7 @@ let POSSaleSchema = new Schema({
 });
 POSSaleSchema.index({
     "name": "text",
-    "remark": "text",
+    "invoiceNumber": "text",
 });
 
 module.exports = mongoose.model("POSSale", POSSaleSchema);

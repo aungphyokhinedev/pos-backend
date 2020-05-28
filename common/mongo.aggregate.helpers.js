@@ -11,5 +11,17 @@ const aggregate = async (params) => {
 	});
 	
 };
+const aggregates = async (params) => {
+	return mongodbHelper(params.uri,async (db)=>{
+		return db.collection(params.collection).aggregate([
+			
+			{ $match: params.match },
+			{ $group: params.group },
+		]).toArray();
 
-module.exports = {aggregate};
+	});
+	
+};
+
+
+module.exports = {aggregate,aggregates};

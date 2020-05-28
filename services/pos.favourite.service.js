@@ -4,15 +4,15 @@
 const DbService = require("moleculer-db");
 const MongooseAdapter = require("moleculer-db-adapter-mongoose");
 const settings = require("../config/settings.json");
-const posShopItemModel = require("../models/pos.shopitem.model");
+const posFavouriteModel = require("../models/pos.favourite.model");
 const authorizationMixin = require("../mixin/authorization.mixin");
 module.exports = {
-	name: "posshopitem",
+	name: "posfavourite",
 	version: 1,
 	mixins: [DbService,authorizationMixin],
 
 	adapter: new MongooseAdapter(process.env.MONGO_URI || settings.mongo_uri, { "useUnifiedTopology": true }),
-	model: posShopItemModel,
+	model: posFavouriteModel,
 
 	//collection: "users",
 	/**
@@ -21,36 +21,6 @@ module.exports = {
 	settings: {
 		failLimit: 5,
 		populates: {
-			"uid": {
-				action: "v1.auth.get",
-				params: {
-					fields: "email _id"
-				}
-            },
-            "owner": {
-				action: "v1.posowner.get",
-				params: {
-					fields: "name companyName _id"
-				}
-            },
-            "discount": {
-				action: "v1.posdiscount.get",
-				params: {
-					fields: "name  _id flatRate percentage"
-				}
-            },
-            "shop": {
-				action: "v1.posshop.get",
-				params: {
-					fields: "name _id"
-				}
-            },
-            "item": {
-				action: "v1.positem.get",
-				params: {
-					fields: "name _id"
-				}
-			},
 		}
 	},
 	dependencies: [
@@ -74,13 +44,13 @@ module.exports = {
 	actions: {
 		hello() {
 
-			return "Hello POS Shop Item";
+			return "Hello POS Favourite";
 		},
 
 	},
 	hooks: {
 		before: {
-			"*": ["checkOwner"],		
+		//	"*": ["checkOwner"],		
 		},
 		after: {
 			

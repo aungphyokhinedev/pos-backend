@@ -125,7 +125,37 @@ module.exports = {
 			params: {
 			},
 			async handler(ctx) {
+				const _owner = await this.getOwner(ctx);
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.owner = _owner._id;
 				return await this.updateItem(ctx);
+			}
+		},
+		salesummary: {
+			params: {
+			},
+			async handler(ctx) {
+				const _owner = await this.getOwner(ctx);
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.owner = _owner._id;
+				return await this.saleSummary(ctx);
+			}
+		},
+		saledetailsummary: {
+			params: {
+			},
+			async handler(ctx) {
+				const _owner = await this.getOwner(ctx);
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.owner = _owner._id;
+				return await this.saleDetailSummary(ctx);
+			}
+		},
+		ordersummary: {
+			params: {
+			},
+			async handler(ctx) {
+				return await this.orderSummary(ctx);
 			}
 		},
 	},
@@ -234,6 +264,15 @@ module.exports = {
 			const _result = await ctx.call("v1."+_collection+".update",  
 				ctx.params);
 			return _result;
+		},
+		async saleSummary(ctx ) {
+			return await ctx.call("v1.possale.summary", ctx.params);
+		},
+		async saleDetailSummary(ctx ) {
+			return await ctx.call("v1.possaledetail.summary", ctx.params);
+		},
+		async orderSummary(ctx ) {
+			return await ctx.call("v1.posorder.summary", ctx.params);
 		},
 	},
 

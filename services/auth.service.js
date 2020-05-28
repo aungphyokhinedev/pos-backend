@@ -216,8 +216,8 @@ module.exports = {
 					//hasing password
 					const _resetPassword = await ctx.call("v1.crypto.hashedPassword", { data: _randompassword, saltRounds: 10 });
 					//saving password
-					return await this.updateById(_user._id,{ resetPassword: _resetPassword });
-					
+					const _result = await this.updateById(_user._id,{ resetPassword: _resetPassword });
+					return {email: _result.email ,message: "Reset code has been sent"};
 
 				}
 				else {
@@ -247,8 +247,8 @@ module.exports = {
 						//hashing password
 						const _newPassword = await ctx.call("v1.crypto.hashedPassword", { data: ctx.params.newPassword, saltRounds: 10 });
 						//saving password
-						return await this.updateById(_user._id,{ password: _newPassword,resetPassword: undefined });
-
+						const _result = await this.updateById(_user._id,{ password: _newPassword,resetPassword: undefined });
+						return {email: _result.email,message:"Password has been changed"};
 					}
 					else {
 						return new ForbiddenError("Invalid reset code");
@@ -277,7 +277,8 @@ module.exports = {
 						const _newPassword = await ctx.call("v1.crypto.hashedPassword", { data: ctx.params.newPassword, saltRounds: 10 });
 						//saving new password
 						
-						return await this.adapter.updateById(ctx.params.uid, { password: _newPassword, lastPasswordChange: Date.now() });
+						await this.adapter.updateById(ctx.params.uid, { password: _newPassword, lastPasswordChange: Date.now() });
+						return {message:"Password has been changed"};
 					}
 					else {
 						return new ForbiddenError("Invalid password");

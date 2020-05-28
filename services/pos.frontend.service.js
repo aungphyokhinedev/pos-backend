@@ -4,6 +4,7 @@ const DbService = require("moleculer-db");
 const { ForbiddenError } = require("moleculer-web").Errors;
 const authorizationMixin = require("../mixin/frontend.authorization.mixin");
 const passwordMixin = require("../mixin/password.mixin");
+const constants = require("../common/constants");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
 const {calculateCharge} = require("../common/calculate.helper");
@@ -126,6 +127,14 @@ module.exports = {
 				return await this.updateItem(ctx);
 			}
 		},
+		addorderinfo: {
+			params: {
+			},
+			async handler(ctx) {
+
+				return await this.addOrderInfo(ctx);
+			}
+		},
 	},
 	hooks: {
 		before: {
@@ -137,6 +146,7 @@ module.exports = {
 			"updateuser": ["checkUser"],
 			"updateitem": ["checkUser"],
 			"orderprocess": ["checkUser"],
+			"addorderinfo": ["checkUser"],
 		},
 		after: {
 
@@ -272,7 +282,7 @@ module.exports = {
 				owner: ctx.params.owner,
 				invoiceNumber :_invno, 
 				shop: _shop._id,
-				status: "pending",
+				status: constants.sale_error,
 				name: ctx.params.name,
 				remark: ctx.params.remark,
 				adjustment: ctx.params.adjustment,
@@ -304,7 +314,7 @@ module.exports = {
 			}
 
 			await ctx.call("v1.possale.update",
-				{ _id: _result._id, status: "done" });
+				{ _id: _result._id, status: constants.sale});
 		},
 
 		async userLogin(ctx) {
@@ -433,26 +443,28 @@ module.exports = {
 				id: ctx.params.user
 			});
 
+
 			if (!_order) throw "Order not found";
+			if(_order.status != constants.order_pending) throw "Order status cannot update";
 			if (!_user) throw "User not found";
 
 
 			if (_order.shop + "" != _user.shop + "") throw "Invalid permission";
 
 
-			const _status = ctx.params.status == "reject" ? "reject" : "accept";
+			const _status = ctx.params.status == constants.order_reject ? constants.order_reject : constants.order_accept;
 			const _rejectlIds = ctx.params.rejectIds;
 
-			if (_status == "accept") {
+			if (_status == constants.order_accept) {
 
 				for (const id of _rejectlIds) {
-					await ctx.call("v1.posorderdetail.update", { id: id, status: "reject" });
+					await ctx.call("v1.posorderdetail.update", { id: id, status: constants.order_reject });
 				}
 
 			}
-			let _message = _status == "accept" && _rejectlIds.length > 0 ?
+			let _message = _status == constants.order_accept && _rejectlIds.length > 0 ?
 				"Order approved but some item is not available" :
-				_status == "accept" ? "Order approved" :
+				_status == constants.order_accept ? "Order approved" :
 					"Order is rejected";
 
 			
@@ -482,12 +494,25 @@ module.exports = {
 			return await ctx.call("v1." + _collection + ".get", { id: ctx.params.id, owner: ctx.params.owner });
 		},
 		async updateItem(ctx) {
-			console.log("updateite", ctx.params);
+			
 			const _collection = ctx.params.collection;
 			const _result = await ctx.call("v1." + _collection + ".update",
 				ctx.params);
 			return _result;
 		},
+		async addOrderInfo(ctx) {
+			const _order = await ctx.call("v1.posorder.get", { id: ctx.params.order });
+			if(!_order) throw "Invalid Order";
+			if(_order.shop != ctx.params.shp) throw "Invalid Permission";
+			// eslint-disable-next-line require-atomic-updates
+			ctx.params.orderNumber = _order.orderNumber;
+			// eslint-disable-next-line require-atomic-updates
+			ctx.params.customer = _order.customer;
+			const _result = await ctx.call("v1.posordertrack.create",
+				ctx.params);
+			return _result;
+		},
+		
 	},
 
 	/**

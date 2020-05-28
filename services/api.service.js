@@ -378,6 +378,10 @@ module.exports = {
 				"POST pos/admin/update/item": "v1.posadmin.updateitem",
 				"POST pos/admin/map/items": "v1.posadmin.mapitems",
 
+				"POST pos/admin/summary/sale": "v1.posadmin.salesummary",
+				"POST pos/admin/summary/saledetail": "v1.posadmin.saledetailsummary",
+				"POST pos/admin/summary/order": "v1.posadmin.ordersummary",
+
 				"POST pos/front/user/login": "v1.posfrontend.userlogin",
 				"POST pos/front/user/items": "v1.posfrontend.getitems",
 				"POST pos/front/update/item": "v1.posfrontend.updateitem",
@@ -390,9 +394,11 @@ module.exports = {
 				"POST pos/front/user/order/process": "v1.posfrontend.orderprocess",
 				"POST pos/front/get/customer": "v1.posfrontend.customer",
 				"POST pos/front/get/shop": "v1.posfrontend.shop",
+				"POST pos/front/add/order/info": "v1.posfrontend.addorderinfo",
+
 
 				"POST pos/public/account": "v1.pospublic.getaccount",
-				"POST pos/public/customer": "v1.pospublic.getcustomer",
+		 		"POST pos/public/customer": "v1.pospublic.getcustomer",
 				"POST pos/public/add/customer": "v1.pospublic.addcustomer",
 				"POST pos/public/update/customer": "v1.pospublic.updatecustomer",
 
@@ -403,9 +409,11 @@ module.exports = {
 				"POST pos/public/update/item": "v1.pospublic.updateitem",
 				"POST pos/public/map/items": "v1.pospublic.mapitems",
 				"POST pos/public/order/items": "v1.pospublic.orderitems",
+				"POST pos/public/order/cancel": "v1.pospublic.ordercancel",
 				"POST pos/public/total/rank": "v1.pospublic.totalrank",
 				"POST pos/socket/broadcast": "v1.possocket.broadcast",
 				"POST pos/public/add/review": "v1.pospublic.addreview",
+				"POST pos/public/set/favourite": "v1.pospublic.setfavourite",
 				
 			},
 
@@ -424,8 +432,8 @@ module.exports = {
 
 		// Serve assets from "public" folder
 		assets: {
-			//folder: "public"
-			folder: "upload"
+			folder: "public"
+			//folder: "upload"
 		}
 	},
 	methods: {

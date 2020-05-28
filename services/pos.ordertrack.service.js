@@ -4,19 +4,15 @@
 const DbService = require("moleculer-db");
 const MongooseAdapter = require("moleculer-db-adapter-mongoose");
 const settings = require("../config/settings.json");
-const posRankingModel = require("../models/pos.ranking.model");
+const posOrderTrackModel = require("../models/pos.ordertrack.model");
 const authorizationMixin = require("../mixin/authorization.mixin");
-const queryMixin = require("../mixin/query.mixin");
-const mongoose = require("mongoose");
-const ObjectId = mongoose.Types.ObjectId;
-const {aggregate} = require("../common/mongo.aggregate.helpers");
 module.exports = {
-	name: "posranking",
+	name: "posordertrack",
 	version: 1,
-	mixins: [DbService,authorizationMixin,queryMixin],
+	mixins: [DbService,authorizationMixin],
 
 	adapter: new MongooseAdapter(process.env.MONGO_URI || settings.mongo_uri, { "useUnifiedTopology": true }),
-	model: posRankingModel,
+	model: posOrderTrackModel,
 
 	//collection: "users",
 	/**
@@ -30,14 +26,19 @@ module.exports = {
 				params: {
 					fields: "email _id"
 				}
-			},
-			"customer": {
-				action: "v1.poscustomer.get",
+            },
+            "order": {
+				action: "v1.posorder.get",
 				params: {
-					fields: "name _id"
+					fields: "name orderNumber  _id"
+				}
+			},
+			"shop": {
+				action: "v1.posshop.get",
+				params: {
+					fields: "name  _id"
 				}
             },
-
 		}
 	},
 	dependencies: [
@@ -61,22 +62,13 @@ module.exports = {
 	actions: {
 		hello() {
 
-			return "Hello POS Ranking";
+			return "Hello POS Order Track";
 		},
-        total: {
-			params: {
-			},
-			async handler(ctx) {
-             
-				return this.getTotalRank(ctx);
 
-			}
-		},
-		
 	},
 	hooks: {
 		before: {
-			
+			"*": ["checkOwner"],		
 		},
 		after: {
 			
@@ -93,20 +85,7 @@ module.exports = {
 	 * Methods
 	 */
 	methods: {
-		async getTotalRank(ctx) {
-			const _data = await aggregate({
-				uri:this.adapter.uri,
-				collection: "posrankings",
-				match: { transactionID:  ObjectId(ctx.params.transactionID), type: ctx.params.type},
-				group: { _id: null, total: { $sum: "$rank" }, count: {$sum: 1} }
-
-            });
-			return _data? { 
-				total: _data.total? _data.total:0,
-				count: _data.count? _data.count:0,
-			}: {total:0, count: 0};
 		
-		},
 	},
 
 	/**

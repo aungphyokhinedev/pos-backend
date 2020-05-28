@@ -53,6 +53,9 @@ let POSShopItemSchema = new Schema({
 		type: Schema.Types.ObjectId, 
         ref: "POSDiscount",
         index: true,
+	},
+	options: {
+		type: String, 
     },
 	photo: {
 		type: String,

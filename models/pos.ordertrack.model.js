@@ -3,7 +3,7 @@
 let mongoose = require("mongoose");
 let Schema = mongoose.Schema;
 
-let POSOrderDetailSchema = new Schema({
+let POSOrderTrackSchema = new Schema({
 	uid: {
 		type: Schema.Types.ObjectId, 
 		ref: "ssouser",
@@ -16,6 +16,12 @@ let POSOrderDetailSchema = new Schema({
 		index: true,
 		required: "Owner ID is required",
 	},
+	user: {
+		type: Schema.Types.ObjectId, 
+		ref: "posuser",
+		index: true,
+		required: "Sale User ID is required",
+    },
 	customer: {
 		type: Schema.Types.ObjectId, 
 		ref: "poscustomer",
@@ -33,67 +39,19 @@ let POSOrderDetailSchema = new Schema({
 		ref: "POSorder",
 		index: true,
 		required: "Order ID is required",
-	},
-	item: {
-		type: Schema.Types.ObjectId, 
-		ref: "POSitem",
-		index: true,
-		required: "Item ID is required",
-	},
-	orderNumber: {
-		type: String,
+    },	
+    orderNumber: {
+		type: String, 
 		trim: true,
 		index: true,
-	},
-	qty: {
-		type: Number,
-		default: 0
-	},
-	total: {
-		type: Number,
-		default: 0
-	},
-	discountAmount: {
-		type: Number,
-		default: 0
-	},
-	discount: {
-		type: Schema.Types.ObjectId, 
-		ref: "posdiscount",
-		index: true,
-	},
-	options: {
-		type: String,
-	},
-	photo: {
-		type: String,
-	},
-	status: {
-		type: String,
-		trim: true,
-		index: true,
-	},
-	errorLoc: {
-		type: String,
-		trim: true,
-		index: true,
-	},
-	errorMsg: {
-		type: String,
-		trim: true,
-		index: true,
-	},
-	fullfilled: {
-		type: Boolean, default: false, index: true
-	},
-	date: {
-		type: Date, default: new Date(), index: true
 	},
 	name: {
 		type: String,
 		trim: true,
 		index: true,
-		required: "Order Detail Name is required"
+	},
+	date: {
+		type: Date, default: new Date(), index: true
 	},
 	remark: {
 		type: String,
@@ -105,11 +63,11 @@ let POSOrderDetailSchema = new Schema({
 }, {
 	timestamps: true
 });
-POSOrderDetailSchema.index({
+POSOrderTrackSchema.index({
     "name": "text",
     "orderNumber": "text",
 });
 
 
 
-module.exports = mongoose.model("POSOrderDetail", POSOrderDetailSchema);
+module.exports = mongoose.model("POSOrderTrack", POSOrderTrackSchema);
