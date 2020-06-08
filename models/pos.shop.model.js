@@ -72,6 +72,22 @@ let POSShopSchema = new Schema({
     coverage: {
 		type: Number, index: true
 	},
+	startTime: {
+		type: Date, index: true
+    },
+    endTime: {
+		type: Date,  index: true
+	},
+	workingDays: {
+		type: String,
+		trim: true,
+		index: true,
+	},
+	services: {
+		type: String,
+		trim: true,
+		index: true,
+    },
 	locked: {
 		type: Boolean, default: false, index: true
 	},

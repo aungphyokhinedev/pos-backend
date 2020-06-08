@@ -276,11 +276,11 @@ module.exports = {
 
 			console.log(ctx.params);
 		
-			const _invno = Date.now();
+			
 			let _sale = {
 				user: ctx.params.user,
 				owner: ctx.params.owner,
-				invoiceNumber :_invno, 
+				invoiceNumber :ctx.params.invoiceNumber, 
 				shop: _shop._id,
 				status: constants.sale_error,
 				name: ctx.params.name,
@@ -308,12 +308,12 @@ module.exports = {
 				_saleitem.user = ctx.params.user;
 				_saleitem.item = _item._id;
 				_saleitem.shop = _users[0].shop;
-				_saleitem.invoiceNumber = _invno;
-				await ctx.call("v1.possaledetail.create",
+				_saleitem.invoiceNumber = ctx.params.invoiceNumber;
+			 	await ctx.call("v1.possaledetail.create",
 					_saleitem);
 			}
 
-			await ctx.call("v1.possale.update",
+			return await ctx.call("v1.possale.update",
 				{ _id: _result._id, status: constants.sale});
 		},
 

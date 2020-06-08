@@ -4,15 +4,15 @@
 const DbService = require("moleculer-db");
 const MongooseAdapter = require("moleculer-db-adapter-mongoose");
 const settings = require("../config/settings.json");
-const posRatingModel = require("../models/pos.rating.model");
+const posInvoiceSetupModel = require("../models/pos.invoicesetup.model");
 const authorizationMixin = require("../mixin/authorization.mixin");
 module.exports = {
-	name: "posrating",
+	name: "posinvoicesetup",
 	version: 1,
 	mixins: [DbService,authorizationMixin],
 
 	adapter: new MongooseAdapter(process.env.MONGO_URI || settings.mongo_uri, { "useUnifiedTopology": true }),
-	model: posRatingModel,
+	model: posInvoiceSetupModel,
 
 	//collection: "users",
 	/**
@@ -27,10 +27,16 @@ module.exports = {
 					fields: "email _id"
 				}
             },
-            "user": {
-				action: "v1.auth.get",
+            "owner": {
+				action: "v1.posowner.get",
 				params: {
-					fields: "email _id"
+					fields: "name companyName _id"
+				}
+            },
+            "shop": {
+				action: "v1.posshop.get",
+				params: {
+					fields: "name _id"
 				}
             },
 		}
@@ -56,7 +62,7 @@ module.exports = {
 	actions: {
 		hello() {
 
-			return "Hello POS Rating";
+			return "Hello POS Invoice Setup";
 		},
 
 	},

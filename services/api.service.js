@@ -60,16 +60,17 @@ module.exports = {
 			},
 
 			aliases: {
+				/*
 				//Test Crypto
 				"POST /crypto/hash": "v1.crypto.hashedPassword",
 				"POST /crypto/validate": "v1.crypto.validatePassword",
-
+	*/
 				// File upload from HTML form
 				"POST /file/list": "v1.file.list",
 				"DELETE file/:id": "v1.file.delete",
 				"POST /file/upload": "multipart:v1.file.save",
 				"GET /file/get": "file.get",
-
+			
 				// Auth
 				"POST /auth/getbyids": "v1.auth.getByIds",
 				"DELETE /auth/:id": "v1.auth.remove",
@@ -86,7 +87,7 @@ module.exports = {
 				"PUT /auth/reset/password": "v1.auth.resetPassword",
 				"PUT /auth/change/password": "v1.auth.changePassword",
 				"PUT /auth/logout": "v1.auth.logout",
-
+				/*
 
 				// Rule
 				"REST rule": "v1.rule",
@@ -334,10 +335,6 @@ module.exports = {
 				"REST pos/orderdetail": "v1.posorderdetail",
 				"POST pos/orderdetail/list": "v1.posorderdetail.list",
 
-				"REST pos/rating": "v1.posrating",
-				"POST pos/rating/list": "v1.posrating.list",
-
-
 				"REST pos/sale": "v1.possale",
 				"POST pos/sale/list": "v1.possale.list",
 
@@ -365,7 +362,7 @@ module.exports = {
 				"REST pos/ranking": "v1.posranking",
 				"POST pos/ranking/list": "v1.posranking.list",
 				
-
+				*/
 				"POST pos/admin/account": "v1.posadmin.getaccount",
 				"POST pos/admin/update/account": "v1.posadmin.updateaccount",
 				"POST pos/admin/owner": "v1.posadmin.getowner",
@@ -414,6 +411,8 @@ module.exports = {
 				"POST pos/socket/broadcast": "v1.possocket.broadcast",
 				"POST pos/public/add/review": "v1.pospublic.addreview",
 				"POST pos/public/set/favourite": "v1.pospublic.setfavourite",
+				"POST pos/public/get/offer": "v1.pospublic.getoffer",
+				"POST pos/public/claim/invoice": "v1.pospublic.invoiceclaim",
 				
 			},
 

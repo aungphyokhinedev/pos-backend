@@ -6,8 +6,17 @@ const mongoose = require("mongoose");
 const constants = require("../common/constants");
 const ObjectId = mongoose.Types.ObjectId;
 const {calculateCharge} = require("../common/calculate.helper");
-const _publicCollections = ["posshop","positem","posshopitem",
-	"posrating","posreview","posordertrack","posfavourite","posextrainfo"];
+const _publicCollections = [
+	"posshop",
+	"positem",
+	"posshopitem",
+	"posranking",
+	"posreview",
+	"posordertrack",
+	"posfavourite",
+	"posextrainfo",
+	"posworkhour"
+];
 module.exports = {
 	name: "pospublic",
 	version: 1,
@@ -183,6 +192,24 @@ module.exports = {
 				return await this.setFavourite(ctx);
 			}
 		},
+		getoffer: {
+			params: {
+			},
+			async handler(ctx) {
+				return await this.getOffer(ctx);
+			}
+		},
+		invoiceclaim : {
+			params: {
+			},
+			async handler(ctx) {
+				
+				const _customer = await this.getCustomer(ctx);
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.customer = _customer._id;
+				return await this.invoiceClaim(ctx);
+			}
+		},
 	},
 	hooks: {
 		before: {
@@ -200,7 +227,7 @@ module.exports = {
 			"ordercancel":["checkOwner"],
 			"addreview":["checkOwner"],
 			"setfavourite":["checkOwner"],
-
+			"invoiceclaim":["checkOwner"],
 		},
 		after: {
 
@@ -363,7 +390,7 @@ module.exports = {
 							query: { 
 								shopItem: _shopitem._id,
 								deleteFlag: false,
-								value:  {'$regex': _find} 
+								value:  {"$regex": _find} 
 								//shop: ObjectId(ctx.params.shop)
 							} 
 						});
@@ -514,7 +541,44 @@ module.exports = {
 			
 			
 
-		}
+		},
+
+		async getOffer(ctx){
+
+			const _offers = await ctx.call("v1.posoffer.find", {
+				query: { 
+					type: ctx.params.type == "shop" ? "OFFERSHOP" : "OFFERITEM"
+				} 
+			});
+			if(_offers.length > 0){
+				const _ids = _offers.map(item=>ObjectId(item.id));
+				
+				const _result = 	await ctx.call( ctx.params.type == "shop" ? "v1.posshop.find" : "v1.posshopitem.find", {
+					populate:["owner"],
+					query: { 
+						_id : {$in: _ids}
+					} 
+				});
+				return { rows: _result};
+				
+			}
+			else{
+				return { rows: [] };
+			}	
+
+		},
+		async invoiceClaim(ctx) {
+			console.log("invoies",ctx.params);
+			const _sale = await ctx.call("v1.possale.get", {
+				id: ctx.params.id
+			});
+			if(!_sale) throw "Invoice Notfound";
+			console.log("invoies",_sale.invoiceNumber);
+			if(_sale.invoiceNumber != ctx.params.invoiceNumber) throw "Invalid Invoice";
+			if(_sale.customer) throw "Invoice is already claimed";
+			return await ctx.call("v1.possale.update",
+				{ _id: ctx.params.id, customer: ctx.params.customer});
+		},
 
 	},
 

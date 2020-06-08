@@ -29,6 +29,11 @@ let POSRankingSchema = new Schema({
 		type: Number,
 		index: true
 	},
+	review: {
+		type: String,
+		index: true,
+		required: "Review is required",
+	},
 }, {
 	timestamps: true
 });
