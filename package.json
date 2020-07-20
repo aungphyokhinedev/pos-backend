@@ -32,7 +32,7 @@
     "googleapis": "^47.0.0",
     "ioredis": "^4.14.0",
     "jsonwebtoken": "^8.5.1",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "moleculer": "^0.13.9",
     "moleculer-db": "^0.8.4",
     "moleculer-db-adapter-mongoose": "^0.8.3",
