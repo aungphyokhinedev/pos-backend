@@ -4,15 +4,15 @@
 const DbService = require("moleculer-db");
 const MongooseAdapter = require("moleculer-db-adapter-mongoose");
 const settings = require("../config/settings.json");
-const posItemModel = require("../models/pos.item.model");
+const appDataModel = require("../models/app.data.model");
 const authorizationMixin = require("../mixin/authorization.mixin");
 module.exports = {
-	name: "positem",
+	name: "appdata",
 	version: 1,
 	mixins: [DbService,authorizationMixin],
 
 	adapter: new MongooseAdapter(process.env.MONGO_URI || settings.mongo_uri, { "useUnifiedTopology": true }),
-	model: posItemModel,
+	model: appDataModel,
 
 	//collection: "users",
 	/**
@@ -21,30 +21,6 @@ module.exports = {
 	settings: {
 		failLimit: 5,
 		populates: {
-			"uid": {
-				action: "v1.auth.get",
-				params: {
-					fields: "email _id"
-				}
-            },
-            "owner": {
-				action: "v1.posowner.get",
-				params: {
-					fields: "name companyName _id"
-				}
-            },
-            "discount": {
-				action: "v1.posdiscount.get",
-				params: {
-					fields: "name flatRate percentage _id"
-				}
-            },
-            "category": {
-				action: "v1.poscategory.get",
-				params: {
-					fields: "name _id"
-				}
-            },
 		}
 	},
 	dependencies: [
@@ -68,31 +44,22 @@ module.exports = {
 	actions: {
 		hello() {
 
-			return "Hello POS Item";
+			return "Hello App Data";
 		},
 
 	},
 	hooks: {
 		before: {
-			"*": ["checkOwner"],		
 		},
 		after: {
-			
+		
 		}
 	},
 	/**
 	 * Events
 	 */
 	events: {
-		"posstock.updated"(params)  {
-		console.log("params", params);
-			this.adapter.updateById(params.id, {
-				$inc: {
-					stockQty: params.qty
-				}
-			}); 
-			
-        },
+
 	},
 
 	/**

@@ -35,19 +35,25 @@ module.exports = {
 				params: {
 					fields: "name companyName _id"
 				}
-            },
-            "customer": {
+			},
+			"customer": {
 				action: "v1.poscustomer.get",
 				params: {
 					fields: "name _id customerId"
 				}
-            },
-            "shop": {
+			},
+			"shop": {
 				action: "v1.posshop.get",
 				params: {
-					fields: "name  _id"
+					fields: "name  _id address mobile"
 				}
-            },
+			},
+			"user": {
+				action: "v1.posuser.get",
+				params: {
+					fields: "name  _id fullName"
+				}
+			},
 		}
 	},
 	dependencies: [
@@ -82,6 +88,15 @@ module.exports = {
 
 			}
 		},
+		saletop: {
+			params: {
+			},
+			async handler(ctx) {
+             
+				return this.saleTop(ctx);
+
+			}
+		},
 	},
 	hooks: {
 		before: {
@@ -103,8 +118,8 @@ module.exports = {
 	 */
 	methods: {
 		async saleSummary(ctx) {
-			
-			const _id = ctx.params.group ? "$" + ctx.params.group : null;
+		//	console.log("ctx",ctx.params);
+			const _group = ctx.params.group ? "$" + ctx.params.group : null;
 			const _match = {
 
 				date: { 
@@ -118,19 +133,55 @@ module.exports = {
 			if(ctx.params.shop) _match.shop = ObjectId(ctx.params.shop);
 			if(ctx.params.customer) _match.customer = ObjectId(ctx.params.customer);
 			if(ctx.params.user) _match.user = ObjectId(ctx.params.user);
-			console.log(_id);
+			
 			
 			const _data = await aggregates({
 				uri:this.adapter.uri,
 				collection: "possales",
 				match: _match,
-				group: { _id, total: { $sum: "$total" }, count: {$sum: 1} }
+				page: ctx.params.page,
+				pageSize:ctx.params.pageSize,
+				group: { _id:_group, total: { $sum: "$total" }, count: {$sum: 1} }
 
 			});
+			console.log("datata",_data);
 			return _data;
 		
 		},
+		async saleTop(ctx) {
+			//	console.log("ctx",ctx.params);
+			const _group = ctx.params.group ? "$" + ctx.params.group : null;
+			const _match = {
+	
+				date: { 
+					$gte: new Date(ctx.params.start),
+					$lt: new Date(ctx.params.end),
+				} ,			
+				owner:  ObjectId(ctx.params.owner)
+			};
+				
+				
+			if(ctx.params.shop) _match.shop = ObjectId(ctx.params.shop);
+			if(ctx.params.customer) _match.customer = ObjectId(ctx.params.customer);
+			if(ctx.params.user) _match.user = ObjectId(ctx.params.user);
+				
 		
+			const _data = await aggregates({
+				uri:this.adapter.uri,
+				collection: "possales",
+				match: _match,
+				//unwind: "$possales",
+				page: ctx.params.page,
+				pageSize:ctx.params.pageSize,
+				group: { _id:_group, total: { $sum: "$total" }, count: {$sum: 1} },
+				sort : { "total": -1 } 
+	
+			});
+				//console.log("datata",_data);
+			return _data;
+			
+		},
+			
 	},
 
 	/**

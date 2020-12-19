@@ -3,7 +3,7 @@
 let mongoose = require("mongoose");
 let Schema = mongoose.Schema;
 
-let POSShopItemSchema = new Schema({
+let POSStockSchema = new Schema({
 	uid: {
 		type: Schema.Types.ObjectId, 
 		ref: "ssouser",
@@ -33,45 +33,11 @@ let POSShopItemSchema = new Schema({
 		trim: true,
 		index: true,
 		required: "Name is required"
-	},
-    description: {
-		type: String,
-		trim: true,
-		index: true,
-		required: "Description is required"
     },
-    unitPrice: {
-		type: Number,
-		default: 0
+    date: {
+		type: Date, default: Date.now, index: true
 	},
-    unit: {
-		type: String,
-		trim: true,
-		index: true,
-    },
-    discount: {
-		type: Schema.Types.ObjectId, 
-        ref: "POSDiscount",
-        index: true,
-	},
-	category: {
-		type: Schema.Types.ObjectId, 
-		ref: "poscategory",
-		index: true,
-		required: "Category ID is required",
-    },
-	options: {
-		type: String, 
-    },
-	photo: {
-		type: String,
-		trim: true,
-		index: true,
-	},
-	disable: {
-		type: Boolean, default: false, index: true
-	},
-    deliveryCharge: {
+    qty: {
 		type: Number,
 		default: 0
 	},
@@ -82,11 +48,10 @@ let POSShopItemSchema = new Schema({
 	timestamps: true
 });
 
-POSShopItemSchema.index({
+POSStockSchema.index({
     "name": "text",
-    "description": "text",
 });
 
 
 
-module.exports = mongoose.model("POSShopItem", POSShopItemSchema);
+module.exports = mongoose.model("POSStock", POSStockSchema);

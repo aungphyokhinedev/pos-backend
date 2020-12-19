@@ -45,6 +45,10 @@ module.exports = {
 			return "Hello Authorization";
 		},
 		getAuthorizationToken: {
+			cache: {
+                // These cache entries will be expired after 5 seconds instead of 30.
+                ttl: 60
+            },
 			params: {
 				data: "object",
 			},
@@ -58,6 +62,10 @@ module.exports = {
 			}
 		},
 		resolveToken: {
+			cache: {
+                // These cache entries will be expired after 5 seconds instead of 30.
+                ttl: 60
+            },
 			params: {
 				jwtToken: "string",
 			},
@@ -67,6 +75,10 @@ module.exports = {
 			}
 		},
 		getRules: {
+			cache: {
+                // These cache entries will be expired after 5 seconds instead of 30.
+                ttl: 60
+            },
 			params: {
 				userid: "string",
 				service: "string",
@@ -77,6 +89,10 @@ module.exports = {
 			}
 		},
 		getAccess: {
+			cache: {
+                // These cache entries will be expired after 5 seconds instead of 30.
+                ttl: 60
+            },
 			params: {
 				userid: "string",
 				service: "string",

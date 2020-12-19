@@ -371,13 +371,17 @@ module.exports = {
 
 				"POST pos/admin/get/item": "v1.posadmin.getbyid",
 				"POST pos/admin/items": "v1.posadmin.getitems",
+				"POST pos/admin/distinct/items": "v1.posadmin.findDistinct",
 				"POST pos/admin/add/item": "v1.posadmin.additem",
 				"POST pos/admin/update/item": "v1.posadmin.updateitem",
 				"POST pos/admin/map/items": "v1.posadmin.mapitems",
 
 				"POST pos/admin/summary/sale": "v1.posadmin.salesummary",
+				"POST pos/admin/top/sale": "v1.posadmin.saletop",
 				"POST pos/admin/summary/saledetail": "v1.posadmin.saledetailsummary",
+				"POST pos/admin/top/saledetail": "v1.posadmin.saledetailtop",
 				"POST pos/admin/summary/order": "v1.posadmin.ordersummary",
+				"POST pos/admin/summary/orderdetail": "v1.posadmin.orderdetailsummary",
 
 				"POST pos/front/user/login": "v1.posfrontend.userlogin",
 				"POST pos/front/user/items": "v1.posfrontend.getitems",
@@ -392,7 +396,9 @@ module.exports = {
 				"POST pos/front/get/customer": "v1.posfrontend.customer",
 				"POST pos/front/get/shop": "v1.posfrontend.shop",
 				"POST pos/front/add/order/info": "v1.posfrontend.addorderinfo",
-
+				"POST pos/front/get/invoice": "v1.posfrontend.getinvoice",
+				"POST pos/front/delete/sale": "v1.posfrontend.deletesale",
+				"POST pos/front/get/sale": "v1.posfrontend.getsale",
 
 				"POST pos/public/account": "v1.pospublic.getaccount",
 		 		"POST pos/public/customer": "v1.pospublic.getcustomer",

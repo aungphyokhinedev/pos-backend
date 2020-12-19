@@ -51,8 +51,13 @@ module.exports = {
 				token: "string",
 			},
 			async handler(ctx) {
+				try{
 				const publicKey = fs.readFileSync("./config/public.pem");
 				return await jwt.verify(ctx.params.token, publicKey);
+				}
+				catch(e){
+					throw "Jwt error";
+				}
 			}
 		}
 	},

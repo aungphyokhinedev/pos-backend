@@ -69,7 +69,7 @@ module.exports = {
 						message: "Facebook login error"
 					};
 				}
-
+				console.log("fbresponse",response.data);
 
 				let photoUrl = "http://graph.facebook.com/" + response.data.id + "/picture?type=large";
 				return {

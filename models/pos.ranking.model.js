@@ -38,6 +38,6 @@ let POSRankingSchema = new Schema({
 	timestamps: true
 });
 
-POSRankingSchema.index({ transactionID: 1, uid: 1}, { unique: true });
+POSRankingSchema.index({ transactionID: 1, customer: 1, type:1}, { unique: true });
 
 module.exports = mongoose.model("POSRanking", POSRankingSchema);

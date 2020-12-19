@@ -3,12 +3,17 @@
 const authorizationMixin = require("../mixin/authorization.mixin");
 const passwordMixin = require("../mixin/password.mixin");
 const mongoose = require("mongoose");
+const {distinctFind} = require("../common/mongo.distinct.find.helper");
+const settings = require("../config/settings.json");
+const MongooseAdapter = require("moleculer-db-adapter-mongoose");
 const ObjectId = mongoose.Types.ObjectId;
-const allowPublicCollection = ["posowner","poscurrency","poscustomer"];
+const precheckMixin = require("../mixin/precheck.mixin");
+const allowPublicCollection = ["posowner","poscurrency","poscustomer","positem"];
 module.exports = {
 	name: "posadmin",
 	version: 1,
-	mixins: [authorizationMixin,passwordMixin],
+	mixins: [authorizationMixin,passwordMixin,precheckMixin],
+	adapter: new MongooseAdapter(process.env.MONGO_URI || settings.mongo_uri, { "useUnifiedTopology": true }),
 	settings: {
 		failLimit: 5,
 	},
@@ -75,6 +80,11 @@ module.exports = {
 			}
 		},
 		getbyid: {
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
 			params: {
 			},
 			async handler(ctx) {
@@ -95,9 +105,15 @@ module.exports = {
 			}
 		},
 		getitems: {
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
 			params: {
 			},
 			async handler(ctx) {
+			
 				if(ctx.params.public){
 				   const _notvalid = allowPublicCollection.indexOf(ctx.params.collection.toLowerCase()) < 0;
 				   if(_notvalid) throw "Permission not allow";
@@ -111,6 +127,37 @@ module.exports = {
 				return await this.getItems(ctx);
 			}
 		},
+		findDistinct:{
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
+			params: {
+			},
+			async handler(ctx) {
+				if(ctx.params.public){
+					const _notvalid = allowPublicCollection.indexOf(ctx.params.collection.toLowerCase()) < 0;
+					if(_notvalid) throw "Permission not allow";
+				 }
+				 else{
+					 const _owner = await this.getOwner(ctx);
+					 // eslint-disable-next-line require-atomic-updates
+					 ctx.params.query.owner = ObjectId(_owner._id);
+				 }
+			
+				 return await distinctFind({
+					uri:process.env.MONGO_URI || settings.mongo_uri,
+					collection: ctx.params.collection,
+					query: ctx.params.query,
+					field:ctx.params.field,
+					pageSize: ctx.params.pageSize,
+					page: ctx.params.page
+				 }
+					 );
+			}
+		},
+		
 		additem: {
 			params: {
 			},
@@ -132,6 +179,11 @@ module.exports = {
 			}
 		},
 		salesummary: {
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
 			params: {
 			},
 			async handler(ctx) {
@@ -141,7 +193,27 @@ module.exports = {
 				return await this.saleSummary(ctx);
 			}
 		},
+		saletop: {
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
+			params: {
+			},
+			async handler(ctx) {
+				const _owner = await this.getOwner(ctx);
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.owner = _owner._id;
+				return await this.saleTop(ctx);
+			}
+		},
 		saledetailsummary: {
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
 			params: {
 			},
 			async handler(ctx) {
@@ -151,17 +223,55 @@ module.exports = {
 				return await this.saleDetailSummary(ctx);
 			}
 		},
-		ordersummary: {
+		saledetailtop: {
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
 			params: {
 			},
 			async handler(ctx) {
+				const _owner = await this.getOwner(ctx);
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.owner = _owner._id;
+				return await this.saleDetailTop(ctx);
+			}
+		},
+		ordersummary: {
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
+			params: {
+			},
+			async handler(ctx) {
+				const _owner = await this.getOwner(ctx);
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.owner = _owner._id;
 				return await this.orderSummary(ctx);
+			}
+		},
+		orderdetailsummary: {
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
+			params: {
+			},
+			async handler(ctx) {
+				const _owner = await this.getOwner(ctx);
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.owner = _owner._id;
+				return await this.orderDetailSummary(ctx);
 			}
 		},
 	},
 	hooks: {
 		before: {
-			"*": ["checkOwner"],		
+			"*": ["paramGuard","checkOwner",],		
 		},
 		after: {
 			after: {
@@ -227,7 +337,9 @@ module.exports = {
 		},
 		async getByID(ctx ) {
 			const _collection = ctx.params.collection;
-			return await ctx.call("v1."+_collection+".get", {id:ctx.params.id,owner:ctx.params.owner});
+			const _result =  await ctx.call("v1."+_collection+".get", {id:ctx.params.id,owner:ctx.params.owner});
+			if(_result.owner != ctx.params.owner) throw "Invalid transaction owner";
+			return _result;
 		},
 		async mapItems(ctx) {	
 			const _collection = ctx.params.collection;
@@ -256,6 +368,7 @@ module.exports = {
 			return _result;
 		},
 		async updateItem(ctx) {
+			//console.log("updateItem",ctx.params);
 			const _collection = ctx.params.collection;
 			const _owner = await this.getOwner(ctx);
 			const _update = await ctx.call("v1."+_collection+".get", {id:ctx.params._id});
@@ -268,11 +381,20 @@ module.exports = {
 		async saleSummary(ctx ) {
 			return await ctx.call("v1.possale.summary", ctx.params);
 		},
+		async saleTop(ctx ) {
+			return await ctx.call("v1.possale.saletop", ctx.params);
+		},
 		async saleDetailSummary(ctx ) {
 			return await ctx.call("v1.possaledetail.summary", ctx.params);
 		},
+		async saleDetailTop(ctx ) {
+			return await ctx.call("v1.possaledetail.saledetailtop", ctx.params);
+		},
 		async orderSummary(ctx ) {
 			return await ctx.call("v1.posorder.summary", ctx.params);
+		},
+		async orderDetailSummary(ctx ) {
+			return await ctx.call("v1.posorderdetail.summary", ctx.params);
 		},
 	},
 
@@ -297,3 +419,4 @@ module.exports = {
 
 	}
 };
+

@@ -1,30 +1,40 @@
 module.exports = {
 	methods: {
 		async checkOwner(ctx) {
-	
-			if (!ctx.meta.authorization)
-				throw new Error("Access Token is missing");
-			//decode token
-			const _data = await ctx.call("v1.authorization.resolveToken", { jwtToken: ctx.meta.authorization });
-			if(!_data)
-				throw new Error("Unauthenticated");
-			const _user = await ctx.call("v1.auth.get", { id: _data._id });
-			if(!_user)
-				throw new Error("Unauthenticated");
 		
-			if(_data.token != _user.token)
+			if(ctx.meta.skipOwnerCheck === true){
+				console.log("skip check");
+				return;
+			}
+		
+			if (ctx.meta.authorization ){
+
+				//decode token
+				const _data = await ctx.call("v1.authorization.resolveToken", { jwtToken: ctx.meta.authorization });
+				if(!_data)
+					throw new Error("Unauthenticated");
+				const _user = await ctx.call("v1.auth.get", { id: _data._id });
+				if(!_user)
+					throw new Error("Unauthenticated");
+		
+				if(_data.token != _user.token)
 				//throw new Error("Token is expired");
 			
-			if(_user.locked)
-				throw new Error("User is locked");
-			if(_user.blocked)
-				throw new Error("User is blocked");
+					if(_user.locked)
+						throw new Error("User is locked");
+				if(_user.blocked)
+					throw new Error("User is blocked");
 			
 		
-			// put user id in service meta
-			// eslint-disable-next-line require-atomic-updates
-			ctx.params.uid = _user._id;
-			return _user;
+				// put user id in service meta
+				// eslint-disable-next-line require-atomic-updates
+				ctx.params.uid = _user._id;
+				return _user;
+			}
+			else{
+				return;
+			}
+		
 			
 		},
 		async getAccess(ctx)

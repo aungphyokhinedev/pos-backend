@@ -68,12 +68,29 @@ module.exports = {
 	},
 	hooks: {
 		before: {
-			create: ["checkOwner"],
-            update: ["checkOwner"],
-            remove: ["checkOwner"]		
+			"*": ["checkOwner"],
+			//create: ["checkOwner"],
+           // update: ["checkOwner"],
+           // remove: ["checkOwner"]		
 		},
 		after: {
-			
+			"get": [
+				async function (ctx, res) {
+					removeOwnerInfo(res, ctx);
+					return res;
+				},],
+			"find": [async function (ctx, res) {
+				res.forEach(element => {
+					removeOwnerInfo(element, ctx);
+				});
+				return res;
+			},],
+			"list": [async function (ctx, res) {
+				res.rows.forEach(element => {
+					removeOwnerInfo(element, ctx);
+				});
+				return res;
+			},],
 		}
 	},
 	/**
@@ -110,4 +127,16 @@ module.exports = {
 	stopped() {
 
 	}
+};
+
+const removeOwnerInfo = function (owner, ctx) {
+
+	if (ctx.params.uid != owner.uid) {
+		delete owner.mobile;
+		delete owner.email;
+		delete owner.locked;
+		delete owner.blocked;
+		//delete owner.codeName;
+	}
+
 };

@@ -3,9 +3,11 @@
 const DbService = require("moleculer-db");
 const authorizationMixin = require("../mixin/authorization.mixin");
 const mongoose = require("mongoose");
+const { ForbiddenError } = require("moleculer-web").Errors;
 const constants = require("../common/constants");
 const ObjectId = mongoose.Types.ObjectId;
 const {calculateCharge} = require("../common/calculate.helper");
+const precheckMixin = require("../mixin/precheck.mixin");
 const _publicCollections = [
 	"posshop",
 	"positem",
@@ -15,12 +17,14 @@ const _publicCollections = [
 	"posordertrack",
 	"posfavourite",
 	"posextrainfo",
-	"posworkhour"
+	"posworkhour",
+	"poscategory",
+	"possaledetail"
 ];
 module.exports = {
 	name: "pospublic",
 	version: 1,
-	mixins: [DbService,authorizationMixin],
+	mixins: [DbService,authorizationMixin,precheckMixin],
 	settings: {
 		failLimit: 5,
 	},
@@ -80,6 +84,7 @@ module.exports = {
 			}
 		},
 		getbyid: {
+			
 			params: {
 			},
 			async handler(ctx) {
@@ -98,6 +103,7 @@ module.exports = {
 			}
 		},
 		finditems: {
+			
 			params: {
 			},
 			async handler(ctx) {
@@ -105,9 +111,15 @@ module.exports = {
 			}
 		},
 		getitems: {
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
 			params: {
 			},
 			async handler(ctx) {
+			
 				
 				const _publicData = _publicCollections.indexOf(ctx.params.collection.toLowerCase()) >= 0;
 				if(!_publicData){
@@ -164,6 +176,11 @@ module.exports = {
 			}
 		},
 		totalrank: {
+			cache: {
+                // Cache key:  
+                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+                ttl: 30
+            },
 			params: {
 			},
 			async handler(ctx) {
@@ -178,7 +195,8 @@ module.exports = {
 				// eslint-disable-next-line require-atomic-updates
 				ctx.params.customer = _customer._id;
 				const _shopitem = await ctx.call("v1.posshopitem.get", {id:ctx.params.transactionID
-				});
+				},
+				);
 				if(!_shopitem) throw "Owner not found";
 				// eslint-disable-next-line require-atomic-updates
 				ctx.params.owner = _shopitem.owner;
@@ -213,6 +231,8 @@ module.exports = {
 	},
 	hooks: {
 		before: {
+			//this is needed for checking prohibited params
+			"*": ["paramGuard"],	
 			"getaccount":["checkOwner"],
 			"getcustomer":["checkOwner"],
 			"addcustomer":["checkOwner"],
@@ -252,9 +272,13 @@ module.exports = {
 			return _account;
 		},
 		async getCustomer(ctx) {
+			console.log("get customer");
 			const _customer = await ctx.call("v1.poscustomer.find", {
 				query: { customer: ctx.params.uid + "" }
 			});
+			if(_customer.length == 0){
+				return new ForbiddenError("Customer not found");
+			}
 			return _customer[0];
 
 		},
@@ -288,7 +312,7 @@ module.exports = {
 		},
 		async findItems(ctx) {
 
-		
+	
 			const _collection = ctx.params.collection;
 			const _page = ctx.params.page || 1;
 			const _pageSize = ctx.params.pageSize || 10;
@@ -300,6 +324,7 @@ module.exports = {
 					offset: (_pageSize * (_page - 1)),
 					query: ctx.params.query
 				});
+		
 			//checking next page exist
 			const _hasNext = _items.length == (_pageSize + 1);
 			if(_hasNext){_items.pop();}
@@ -325,7 +350,7 @@ module.exports = {
 		},
 		async orderItems(ctx) {
 			
-			console.log("Order Items: ",ctx.params);
+		
 			if(ctx.params.customer == 0){
 				throw "Customer not found";
 			}
@@ -433,8 +458,7 @@ module.exports = {
 
 			const _orderno = Date.now();
 
-			console.log("order items", _items);
-			console.log("order no", _orderno);
+		
 			let _order = {
 				customer: ctx.params.customer,
 				shop: ctx.params.shop,
@@ -450,7 +474,8 @@ module.exports = {
 				discount: _shop.discount ? _shop.discount._id : null,
 				discountAmount: _discount,
 				total: _total - _discount + _tax,
-				date: Date.now()
+				date: Date.now(),
+				remark: ctx.params.remark
 
 
 			};

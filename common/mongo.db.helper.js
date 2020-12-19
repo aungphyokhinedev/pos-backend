@@ -14,6 +14,8 @@ const dbHelper = async (uri, func) => {
 		await connection.close();
 		console.log("close db");
 		throw error;
+	}finally{
+		await connection.close();
 	}
 };
 

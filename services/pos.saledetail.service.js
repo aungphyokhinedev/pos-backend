@@ -6,7 +6,7 @@ const MongooseAdapter = require("moleculer-db-adapter-mongoose");
 const settings = require("../config/settings.json");
 const posSaleDetailModel = require("../models/pos.saledetail.model");
 const authorizationMixin = require("../mixin/authorization.mixin");
-const {aggregate} = require("../common/mongo.aggregate.helpers");
+const {aggregates} = require("../common/mongo.aggregate.helpers");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
 module.exports = {
@@ -35,6 +35,12 @@ module.exports = {
 				params: {
 					fields: "name companyName _id"
 				}
+			},
+			"shop": {
+				action: "v1.posshop.get",
+				params: {
+					fields: "name  _id"
+				}
             },
             "sale": {
 				action: "v1.possale.get",
@@ -45,7 +51,7 @@ module.exports = {
             "item": {
 				action: "v1.positem.get",
 				params: {
-					fields: "name  _id"
+					fields: "name photo  _id"
 				}
             },
 		}
@@ -82,6 +88,15 @@ module.exports = {
 
 			}
 		},
+		saledetailtop: {
+			params: {
+			},
+			async handler(ctx) {
+             
+				return this.saleDetailTop(ctx);
+
+			}
+		},
 	},
 	hooks: {
 		before: {
@@ -103,8 +118,8 @@ module.exports = {
 	 */
 	methods: {
 		async saleDetailSummary(ctx) {
-			console.log("total sale detail: ", ctx.params);
-			const _id = ctx.params.group ? "$" + ctx.params.group : null;
+		
+			const _group = ctx.params.group ? "$" + ctx.params.group : null;
 			const _match = {
 				date: {
 					$gte: new Date(ctx.params.start),
@@ -113,23 +128,64 @@ module.exports = {
 				owner:  ObjectId(ctx.params.owner)
 			};
 			if(ctx.params.shop) _match.shop = ObjectId(ctx.params.shop);
-			if(ctx.params.customer) _match.shop = ObjectId(ctx.params.customer);
-			if(ctx.params.user) _match.shop = ObjectId(ctx.params.user);
-			if(ctx.params.item) _match.shop = ObjectId(ctx.params.item);
+			if(ctx.params.customer) _match.customer = ObjectId(ctx.params.customer);
+			if(ctx.params.user) _match.user = ObjectId(ctx.params.user);
+			if(ctx.params.item) _match.item = ObjectId(ctx.params.item);
 			
-			const _data = await aggregate({
+			const _data = await aggregates({
 				uri:this.adapter.uri,
 				collection: "possaledetails",
 				match: _match,
-				group: { _id, total: { $sum: "$total" }, count: {$sum: 1} }
+				page: ctx.params.page,
+				pageSize:ctx.params.pageSize,
+				group: { _id:_group, total: { $sum: "$amount" }, count: {$sum: "$qty"} }
 
-            });
+			});
+		
+			return _data;
+/*
 			return _data? { 
 				total: _data.total? _data.total:0,
 				count: _data.count? _data.count:0,
-			}: {total:0, count: 0};
+			}: {total:0, count: 0};*/
 		
 		},
+
+		async saleDetailTop(ctx) {
+			//	console.log("ctx",ctx.params);
+			const _group = ctx.params.group ? "$" + ctx.params.group : null;
+			const _match = {
+	
+				date: { 
+					$gte: new Date(ctx.params.start),
+					$lt: new Date(ctx.params.end),
+				} ,			
+				owner:  ObjectId(ctx.params.owner)
+			};
+				
+				
+			if(ctx.params.shop) _match.shop = ObjectId(ctx.params.shop);
+			if(ctx.params.customer) _match.customer = ObjectId(ctx.params.customer);
+			if(ctx.params.user) _match.user = ObjectId(ctx.params.user);
+				
+				
+			const _data = await aggregates({
+				uri:this.adapter.uri,
+				collection: "possaledetails",
+				match: _match,
+				//unwind: "$possaledetails",
+				page: ctx.params.page,
+				pageSize:ctx.params.pageSize,
+				group: { _id:_group, total: { $sum: "$amount" }, count: {$sum: 1} },
+				sort : { "total": -1 } 
+	
+			});
+				//console.log("datata",_data);
+			return _data;
+			
+		},
+			
+
 	},
 
 	/**

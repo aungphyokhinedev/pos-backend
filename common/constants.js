@@ -3,6 +3,7 @@
 module.exports = {
     sale_error: "error",
     sale_fulfilled: "fulfilled",
+    sale_finish: "finish",
     order_reject: "reject",
 	order_accept: "accept",
 	order_pending: "pending",
@@ -13,4 +14,6 @@ module.exports = {
     order_onboard: "onboarding",
     order_deliver: "delivered",
     order_fulfilled: "fulfilled",
+    order_finish: "finish",
 };
+

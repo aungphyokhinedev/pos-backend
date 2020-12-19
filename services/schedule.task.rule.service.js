@@ -104,7 +104,7 @@ module.exports = {
 	 * Service started lifecycle event handler
 	 */
 	 started() {
-        
+        /*
 		this.settings.scheduler = schedule.scheduleJob("* * * * *",async function() {
 			const _now = new Date();
 			//sunday 0 to saturday 7
@@ -181,7 +181,7 @@ module.exports = {
             
             
 		}.bind(this));
-        
+        */
 	},
 
 	/**

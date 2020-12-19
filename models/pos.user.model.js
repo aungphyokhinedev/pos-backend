@@ -24,13 +24,13 @@ let POSUserSchema = new Schema({
 	name: {
 		type: String,
 		trim: true,
-		unique : true,
 		index: true,
 		required: "Name is required"
 	},
 	password: {
 		type: String,
-    },
+	},
+	
     fullName: {
 		type: String,
 		trim: true,
@@ -66,6 +66,21 @@ let POSUserSchema = new Schema({
 	},
 	deleteFlag: {
 		type: Boolean, default: false, index: true
+	},
+	loginFail: {
+		type: Number,
+		default: 0
+	},
+	lastPasswordChange: {
+		type: Date,
+		index: true
+	},
+	lastLoggedInDate: {
+		type: Date, default: new Date(),
+		index: true
+	},
+	lastSucessfullLoggedInDate: {
+		type: Date, default: new Date(),	index: true
 	},
 }, {
 	timestamps: true

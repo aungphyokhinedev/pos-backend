@@ -7,7 +7,10 @@ const { ForbiddenError } = require("moleculer-web").Errors;
 const settings = require("../config/settings.json");
 const ssouserModel = require("../models/ssouser.model");
 const authorizationMixin = require("../mixin/authorization.mixin");
+const PasswordStrengthCheck = require("../common/password.strength.check");
 require("events").EventEmitter.prototype._maxListeners = 100;
+const loginAttemptLimit = 10;
+
 module.exports = {
 	name: "auth",
 	version: 1,
@@ -113,7 +116,7 @@ module.exports = {
 
 				if (_login.success) {
 
-
+					console.log("_login",_login);
 					// checking email is already used
 					const _existinguser = await this.findByEmail(_login.data.email);
 		
@@ -211,12 +214,12 @@ module.exports = {
 					await ctx.call("v1.mailer.send", {
 						to: _user.email,
 						subject: "Reset Password",
-						html: "Your new password is " + _randompassword
+						html: "Your password reset code is " + _randompassword
 					});
 					//hasing password
 					const _resetPassword = await ctx.call("v1.crypto.hashedPassword", { data: _randompassword, saltRounds: 10 });
 					//saving password
-					const _result = await this.updateById(_user._id,{ resetPassword: _resetPassword });
+					const _result = await this.updateById(_user._id,{ resetPassword: _resetPassword,resetFail:0 });
 					return {email: _result.email ,message: "Reset code has been sent"};
 
 				}
@@ -234,24 +237,36 @@ module.exports = {
 				newPassword: "string",
 			},
 			async handler(ctx) {
+				
+
 				let _user = await this.findByEmail(ctx.params.email);
 				if (_user) {
 					if(!_user.resetPassword){
-						return new ForbiddenError("Reset code expired");
+						return new ForbiddenError("Reset code expired, Resend reset code again");
 					}
+
 
 					//checking reset code (from mail)
 					let _valid = await ctx.call("v1.crypto.validatePassword", { data: ctx.params.resetCode, encrypted: _user.resetPassword });
 					if (_valid) {
 
+						//check new password
+						PasswordStrengthCheck.check(ctx.params.newPassword);
+
 						//hashing password
 						const _newPassword = await ctx.call("v1.crypto.hashedPassword", { data: ctx.params.newPassword, saltRounds: 10 });
 						//saving password
-						const _result = await this.updateById(_user._id,{ password: _newPassword,resetPassword: undefined });
+						const _result = await this.updateById(_user._id,
+							{ password: _newPassword,
+							resetPassword: undefined,
+							//resetting login fail
+							loginFail:0,
+							 resetFail: 0 });
 						return {email: _result.email,message:"Password has been changed"};
 					}
 					else {
-						return new ForbiddenError("Invalid reset code");
+						this.setResetFail(ctx,_user);
+						return new ForbiddenError("Invalid reset code,");
 					}
 				}
 				else {
@@ -265,7 +280,9 @@ module.exports = {
 				newPassword: "string",
 			},
 			async handler(ctx) {
-				console.log(ctx.params);
+				//check new password
+				PasswordStrengthCheck.check(ctx.params.newPassword);
+			
 				let _user = await this.getById(ctx.params.uid);
 				if (_user) {
 					
@@ -355,10 +372,12 @@ module.exports = {
 						return this.setLogin(ctx,_user);
 					}
 					else {
-						return new ForbiddenError("Authentication fail(Invalid Password)");
+						const _result = await this.setLoginFail(ctx,_user);					
+						return new ForbiddenError("Authentication fail(Invalid Password), " + _result);
 					}
 				}
 				else {
+					
 					return new ForbiddenError("Authentication fail(Invalid User)");
 				}
 				
@@ -410,6 +429,9 @@ module.exports = {
 			});
 		},
 		async checkStatus(user) {
+			if(user.loginFail > loginAttemptLimit) {
+				return new ForbiddenError("Too manay login fails, please reset password and login again");
+			}
 			if(user.blocked){
 				return new ForbiddenError("User is blocked");
 			}
@@ -418,7 +440,10 @@ module.exports = {
 		
 			//generate token on userid and random token
 			const _token = await this.getToken(ctx,user);
-			await this.adapter.updateById(user._id, { lastLoggedInDate: Date.now()});
+			await this.adapter.updateById(user._id, { 
+				lastLoggedInDate: Date.now(), 
+				lastSucessfullLoggedInDate: Date.now(), 
+				loginFail:0});
 			// eslint-disable-next-line require-atomic-updates
 			ctx.meta.$responseHeaders = {
 				"accessToken": _token
@@ -430,6 +455,19 @@ module.exports = {
 				provider:user.provider,
 				userName:user.userName
 			};
+		},
+		async setLoginFail(ctx,user) {	
+			const _fails = user.loginFail?user.loginFail:0;
+			const _remainingLimit = loginAttemptLimit - _fails;	
+			await this.adapter.updateById(user._id, {lastLoggedInDate: Date.now(), $inc: {loginFail: 1}});		
+			return "You only have (" + _remainingLimit + ") login attempt left";
+
+		},
+		async setResetFail(ctx,user) {	
+			await this.adapter.updateById(user._id, 
+				{resetPassword: undefined},
+			);		
+		
 		}
 	},
 

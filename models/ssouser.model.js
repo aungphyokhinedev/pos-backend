@@ -50,7 +50,12 @@ let SSOUserSchema = new Schema({
 	},
 	lastSucessfullLoggedInDate: {
 		type: Date, default: new Date(),	index: true
-	}
+	},
+	loginFail: {
+		type: Number,
+		default: 0
+	},
+
 }, {
 	timestamps: true
 });

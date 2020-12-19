@@ -59,6 +59,10 @@ let POSItemSchema = new Schema({
 		trim: true,
 		index: true,
 	},
+	stockQty: {
+		type: Number,
+		default: 0
+	},
     deliverable: {
 		type: Boolean, default: false, index: true
 	},

@@ -9,7 +9,7 @@ const authorizationMixin = require("../mixin/authorization.mixin");
 module.exports = {
 	name: "poscustomer",
 	version: 1,
-	mixins: [DbService,authorizationMixin],
+	mixins: [DbService, authorizationMixin,],
 
 	adapter: new MongooseAdapter(process.env.MONGO_URI || settings.mongo_uri, { "useUnifiedTopology": true }),
 	model: posCustomerModel,
@@ -26,7 +26,7 @@ module.exports = {
 				params: {
 					fields: "email _id"
 				}
-            },
+			},
 		}
 	},
 	dependencies: [
@@ -52,15 +52,31 @@ module.exports = {
 
 			return "Hello POS Customer";
 		},
-	
+
 
 	},
 	hooks: {
 		before: {
-			"*": ["checkOwner"],		
+			"*": ["checkOwner"],
 		},
 		after: {
-			
+			"get": [
+				async function (ctx, res) {
+					removeCustomerInfo(res, ctx);
+					return res;
+				},],
+			"find": [async function (ctx, res) {
+				res.forEach(element => {
+					removeCustomerInfo(element, ctx);
+				});
+				return res;
+			},],
+			"list": [async function (ctx, res) {
+				res.rows.forEach(element => {
+					removeCustomerInfo(element, ctx);
+				});
+				return res;
+			},],
 		}
 	},
 	/**
@@ -74,8 +90,8 @@ module.exports = {
 	 * Methods
 	 */
 	methods: {
-		
-		
+
+
 	},
 
 	/**
@@ -98,4 +114,16 @@ module.exports = {
 	stopped() {
 
 	}
+};
+
+
+const removeCustomerInfo = function (customer, ctx) {
+	if (ctx.params.uid != customer.uid) {
+		delete customer.mobile;
+		delete customer.address;
+		delete customer.location;
+		delete customer.locked;
+		delete customer.blocked;
+	}
+
 };

@@ -51,6 +51,12 @@ module.exports = {
 					fields: "name _id"
 				}
 			},
+			"category": {
+				action: "v1.poscategory.get",
+				params: {
+					fields: "name _id"
+				}
+            },
 		}
 	},
 	dependencies: [
@@ -90,7 +96,7 @@ module.exports = {
 	 * Events
 	 */
 	events: {
-
+		
 	},
 
 	/**
