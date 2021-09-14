@@ -29,5 +29,5 @@ let POSFavouriteSchema = new Schema({
 	timestamps: true
 });
 
-POSFavouriteSchema.index({ user:1,  transactionID: 1}, { unique: true });
+POSFavouriteSchema.index({ user:1,  transactionID: 1, type: 1}, { unique: true });
 module.exports = mongoose.model("POSFavourite", POSFavouriteSchema);

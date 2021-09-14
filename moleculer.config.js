@@ -15,7 +15,7 @@
  * 	via environment variables, use the `MOL_` prefix and double underscore `__` for nested properties in .env file. 
  * 	For example, to set the cacher prefix to `MYCACHE`, you should declare an env var as `MOL_CACHER__OPTIONS__PREFIX=MYCACHE`.
  */
-const cachutilhelper = require("./common/cach.util.helper");
+const cachutilhelper = require("./common/cache.util.helper");
 module.exports = {
 	// Namespace of nodes to segment your nodes on the same network.
 	namespace: "",
@@ -43,7 +43,7 @@ module.exports = {
 			// Prefix for keys
 			prefix: "POS2",            
 			// set Time-to-live to 30sec.
-			ttl: 30, 
+			ttl: 300, 
 			// Turns Redis client monitoring on.
 			monitor: false,
 			// Redis settings

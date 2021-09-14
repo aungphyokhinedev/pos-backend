@@ -11,7 +11,7 @@ const ObjectId = mongoose.Types.ObjectId;
 module.exports = {
 	name: "posshopstock",
 	version: 1,
-	mixins: [DbService,authorizationMixin],
+	mixins: [DbService, authorizationMixin],
 
 	adapter: new MongooseAdapter(process.env.MONGO_URI || settings.mongo_uri, { "useUnifiedTopology": true }),
 	model: posShopStockModel,
@@ -72,70 +72,98 @@ module.exports = {
 
 			return "Hello POS Shop Stock";
 		},
-		
+
 
 	},
 	hooks: {
 		before: {
-			"*": ["checkOwner"],		
+			"*": ["checkOwner"],
 		},
 		after: {
-			
+
 		}
 	},
 	/**
 	 * Events
 	 */
 	events: {
-		async "posstock.updated" (params)  {
-			
-			let _current = await this.adapter.find({query:{
-				shop:params.shop,
-				item:params.item,
-			}});
-		
-			if(_current.length == 0){
-				this.adapter.insert({
-					uid:params.uid,
-					owner:params.owner,
-					name:params.name,
-					shop:params.shop,
-					item:params.item,
-					deleteFlag: false,
-					qty: params.qty
-				}); 
-				
-			}
-			else{
-				
-				let result = await this.adapter.updateById(ObjectId(_current[0]._id), {
-					qty: params.qty + _current[0].qty
-				}); 
-				console.log("update result",result);
-			}
-		},
-		async "posstock.sale" (params)  {
-			
-			let _current = await this.adapter.find({query:{
-				shop:params.shop,
-				item:params.item,
-			}});
+		async "posstock.updated"(params) {
+			/// need to call with broker for cache issue
+			/// when using adapter cahche will not work
+			let _current = await this.broker.call("v1.posshopstock.find", {
+				query: {
+					shop: params.shop,
+					item: params.item,
+				}
+			});
 
-		
-			if(_current.length > 0) {
-				await this.adapter.updateById(_current[0]._id, {
-					qty: _current[0].qty - params.qty
-				}); 
-			
+			if (_current.length == 0) {
+				await this.broker.call("v1.posshopstock.create",
+					{
+						uid: params.uid,
+						owner: params.owner,
+						name: params.name,
+						shop: params.shop,
+						item: params.item,
+						deleteFlag: false,
+						qty: params.qty
+					}
+				);
+				//console.log("insert result",_result);
 			}
-			
+			else {
+				//item exist but deleted
+				if (_current[0].deleteFlag) {
+					await this.broker.call("v1.posshopstock.update", {
+						id: ObjectId(_current[0]._id),
+						qty: params.qty,
+						deleteFlag: false,
+					});
+					//console.log("overwrite result",_result);
+				}
+				else {
+					await this.broker.call("v1.posshopstock.update", {
+						id: ObjectId(_current[0]._id),
+						qty: params.qty + _current[0].qty,
+						deleteFlag: false,
+					});
+					//console.log("update result",result);
+				}
+
+
+			}
+			this.broker.cacher.clean("posshopstock-**");
+		},
+		async "posstock.sale"(params) {
+			/// need to call with broker for cache issue
+			/// when using adapter cahche will not work
+			let _current = await this.broker.call("v1.posshopstock.find", {
+				query: {
+					shop: params.shop,
+					item: params.item,
+				}
+			});
+
+
+
+			if (_current.length > 0) {
+
+				await this.broker.call("v1.posshopstock.update", {
+					id: ObjectId(_current[0]._id),
+					qty: _current[0].qty - params.qty,
+					deleteFlag: false,
+				});
+
+			}
+			this.broker.cacher.clean("posshopstock-**");
+
 		}
 	},
 	/**
 	 * Methods
 	 */
 	methods: {
-		
+
 	},
 
 	/**

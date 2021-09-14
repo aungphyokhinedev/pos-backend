@@ -81,7 +81,7 @@ module.exports = {
 			handler(ctx) {
 				return new this.Promise(async(resolve, reject) => {
 
-					if(ctx.params._readableState.length > 50 * 1000) throw "File upload limit exceed";
+					if(ctx.params._readableState.length > 100 * 1000) throw "File upload limit exceed {" + ctx.params._readableState.length + "}";
 					//reject(new Error("example error"));
 					const fileName = Date.now() + "_" + ctx.meta.filename || this.randomName();
 					const filePath = path.join(this.settings.uploadFolder, fileName);

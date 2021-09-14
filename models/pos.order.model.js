@@ -111,6 +111,10 @@ let POSOrderSchema = new Schema({
 		type: Number,
 		default: 0
 	},
+	cost: {
+		type: Number,
+		default: 0
+	},
 	deleteFlag: {
 		type: Boolean, default: false, index: true
 	},

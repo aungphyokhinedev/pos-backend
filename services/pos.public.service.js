@@ -8,6 +8,9 @@ const constants = require("../common/constants");
 const ObjectId = mongoose.Types.ObjectId;
 const {calculateCharge} = require("../common/calculate.helper");
 const precheckMixin = require("../mixin/precheck.mixin");
+const _sharableCollections = [
+	"posshop",
+];
 const _publicCollections = [
 	"posshop",
 	"positem",
@@ -290,6 +293,7 @@ module.exports = {
 		async updateCustomer(ctx) {
 			const _result = await ctx.call("v1.poscustomer.update",
 				ctx.params);
+			this.broker.cacher.clean("poscustomer-**");	
 			return _result;
 		},
 		async getByID(ctx) {
@@ -310,9 +314,19 @@ module.exports = {
 			return _results;
 
 		},
+
+		/// to control isPublic flag on posshop etc...
+		addAccessControl(ctx){
+			const _sharable = _sharableCollections.indexOf(ctx.params.collection.toLowerCase()) >= 0;
+			if(_sharable){
+				if(ctx.params.query) {
+					ctx.params.query["isPublic"] = true;
+				}
+			}
+		},
 		async findItems(ctx) {
 
-	
+			this.addAccessControl(ctx);
 			const _collection = ctx.params.collection;
 			const _page = ctx.params.page || 1;
 			const _pageSize = ctx.params.pageSize || 10;
@@ -332,6 +346,7 @@ module.exports = {
 			return { rows:_items, hasNext:_hasNext, page:_page,pageSize:_pageSize, totalPages: Math.ceil(_items.length / _pageSize) };
 		},
 		async getItems(ctx) {
+			this.addAccessControl(ctx);
 			const _collection = ctx.params.collection;  
 			return await ctx.call("v1." + _collection + ".list", ctx.params);
 		},
@@ -346,6 +361,7 @@ module.exports = {
 			const _collection = ctx.params.collection;
 			const _result = await ctx.call("v1." + _collection + ".update",
 				ctx.params);
+			this.broker.cacher.clean(_collection + "-**");	
 			return _result;
 		},
 		async orderItems(ctx) {
@@ -447,6 +463,7 @@ module.exports = {
 			if(!_items || _items.length == 0){
 				throw "Invalid order items";
 			}
+			
 			const _total = _items.reduce((total,item)=>{
 				return total +  item.total;
 			},0);
@@ -506,6 +523,7 @@ module.exports = {
 				event: "order-" + _result.shop, data: {
 					action: "refresh", 
 					type: "order",
+					customer: _result.customer,
 					message: "New order received",
 					title: "Order No. " +  _result.orderNumber,
 					shop: _result.shop,
@@ -514,9 +532,12 @@ module.exports = {
 				}
 			});
 		
-			return await ctx.call("v1.posorder.update",  
+			const _resultOrder = await ctx.call("v1.posorder.update",  
 				{_id: _result._id, status:constants.order_pending});
 
+			this.broker.cacher.clean("posorder-**");
+			this.broker.cacher.clean("posorderdetail-**");		
+			return _resultOrder;
 
 		},
 		async cancelOrder(ctx) {
@@ -529,8 +550,10 @@ module.exports = {
 			if(_order.status != constants.order_pending) throw "Order status cannot update";
 			if(_order.customer + "" != ctx.params.customer + "") throw "Invalid permission";
 
-			return await ctx.call("v1.posorder.update",  
+			const _resultOrder =  await ctx.call("v1.posorder.update",  
 				{_id: ctx.params._id, status:"cancel"});
+			this.broker.cacher.clean("posorder-**");
+			return _resultOrder;
 
 		},
 		totalRank(ctx) {
@@ -539,10 +562,12 @@ module.exports = {
 		async setNoti(ctx, params) {
 			await ctx.call("v1.possocket.broadcast",params);
 			await ctx.call("v1.posnoti.create",params.data);
+			this.broker.cacher.clean("posnoti-**");
 		},
 		async addReview(ctx) {
 			const _result = await ctx.call("v1.posreview.create",
 				ctx.params);
+			this.broker.cacher.clean("posreview-**");
 			return _result;
 		},
 		async setFavourite(ctx){
@@ -552,17 +577,20 @@ module.exports = {
 					user: ctx.params.user, transactionID: ctx.params.transactionID
 				} 
 			});
+
+			let _result;
 			if(_favourite.length > 0){
-				const _result = await ctx.call("v1.posfavourite.remove",
+				_result = await ctx.call("v1.posfavourite.remove",
 					{id:_favourite[0]._id});
-				return _result;
+				
 			}
 			else{
-				const _result = await ctx.call("v1.posfavourite.create",
+				_result = await ctx.call("v1.posfavourite.create",
 					ctx.params);
-				return _result;
-			}
 				
+			}
+			this.broker.cacher.clean("posfavourite-**");
+			return _result;
 			
 			
 
@@ -601,8 +629,10 @@ module.exports = {
 			console.log("invoies",_sale.invoiceNumber);
 			if(_sale.invoiceNumber != ctx.params.invoiceNumber) throw "Invalid Invoice";
 			if(_sale.customer) throw "Invoice is already claimed";
-			return await ctx.call("v1.possale.update",
+			const _result = await ctx.call("v1.possale.update",
 				{ _id: ctx.params.id, customer: ctx.params.customer});
+			this.broker.cacher.clean("possale-**");
+			return _result;
 		},
 
 	},

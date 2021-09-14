@@ -19,7 +19,6 @@ let POSShopUserSchema = new Schema({
 	name: {
 		type: String,
 		trim: true,
-		unique : true,
 		index: true,
 		required: "Name is required"
 	},
@@ -38,6 +37,6 @@ let POSShopUserSchema = new Schema({
 }, {
 	timestamps: true
 });
-
+POSShopUserSchema.index({ owner:1, name:1}, { unique: true });
 POSShopUserSchema.index({ owner:1, shop:1, user: 1}, { unique: true });
 module.exports = mongoose.model("POSShopUser", POSShopUserSchema);

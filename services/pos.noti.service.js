@@ -24,19 +24,19 @@ module.exports = {
             "owner": {
 				action: "v1.posowner.get",
 				params: {
-					fields: "name _id"
+					fields: "logo name _id"
 				}
             },
             "customer": {
 				action: "v1.poscustomer.get",
 				params: {
-					fields: "name _id"
+					fields: "name _id photo"
 				}
             },
             "shop": {
 				action: "v1.posshop.get",
 				params: {
-					fields: "name  _id"
+					fields: "logo name  _id"
 				}
             },
 		}

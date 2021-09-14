@@ -41,6 +41,16 @@ module.exports = {
 		hello() {
 			return "Hello POS Front End";
 		},
+		emitevent: {
+			params: {
+
+			},
+			async handler(ctx) {
+
+
+				return await this.emitEvent(ctx);
+			}
+		},
 		userlogin: {
 			params: {
 
@@ -229,10 +239,11 @@ module.exports = {
 			return _user;
 		},
 		async getCustomer(ctx) {
-		
+		console.log("ctx",ctx.params);
 			const _customers = await ctx.call("v1.poscustomer.find", 
 			{ query: ctx.params.query },
 			{ meta: { skipOwnerCheck: true } });
+			console.log("result",_customers);
 			return _customers[0];
 		},
 		async getShop(ctx) {
@@ -259,6 +270,7 @@ module.exports = {
 			//console.log("_data", _data);
 			const _result = await ctx.call("v1.posuser.update",
 				_data);
+			this.broker.cacher.clean("posuser-**");
 			return _result;
 		},
 		async getSalePrices(ctx) {
@@ -328,7 +340,7 @@ module.exports = {
 			if (!_items || _items.length == 0) {
 				throw "Invalid sale items";
 			}
-
+			
 			const _total = _items.reduce((total, item) => {
 
 				return total + item.total;
@@ -354,14 +366,14 @@ module.exports = {
 				taxAmount: _tax,
 				discount: _shop.discount ? _shop.discount._id : null,
 				discountAmount: _discount,
-				total: _total - _discount + _tax,
+				total: _total - _discount + _tax + (ctx.params.adjustment?parseInt(ctx.params.adjustment):0),
 				date: Date.now()
 			};
 
 
 			const _result = await ctx.call("v1.possale.create",
 				_sale);
-
+			
 			for (const _item of ctx.params.items) {
 
 				let _saleitem = Object.assign({}, _item);
@@ -377,8 +389,13 @@ module.exports = {
 			}
 			this.saleItemEvent(ctx.params.items, _users[0].shop);
 
-			return await ctx.call("v1.possale.update",
+			const _resultSale = await ctx.call("v1.possale.update",
 				{ _id: _result._id, status: constants.sale_finish });
+
+			//clear cache	
+			this.broker.cacher.clean("possale-**");
+			this.broker.cacher.clean("possaledetail-**");
+			return _resultSale;
 		},
 
 		async saleItemEvent(items, shop) {
@@ -557,7 +574,7 @@ module.exports = {
 
 					const _detailItems = await ctx.call("v1.posorderdetail.find",
 						{ query: { order: _order._id } });
-
+					
 					const _total = _detailItems.reduce((total, item) => {
 						return total + (_rejectlIds.includes(item._id) ? 0 : item.total);
 					}, 0);
@@ -617,7 +634,9 @@ module.exports = {
 			//if(_status == constants.order_accept ){
 			//	this.addOrderToSale(ctx,_rejectlIds);
 			//}
-
+			//clear cache	
+			this.broker.cacher.clean("posorder-**");
+			this.broker.cacher.clean("posorderdetail-**");
 
 			return _result;
 
@@ -644,6 +663,7 @@ module.exports = {
 				invoiceNumber: _invoiceNo,
 				adjustment: 0,
 				total: _order.total,
+				cost: _order.cost,
 				user: ctx.params.user,
 				owner: _order.owner,
 				customer: _order.customer,
@@ -693,14 +713,21 @@ module.exports = {
 			this.saleItemEvent(_saleDetails, _order.shop,);
 			await ctx.call("v1.posorder.update", { id: _order._id, status: constants.order_finish });
 
-			return await ctx.call("v1.possale.update",
+			let _resultSale = await ctx.call("v1.possale.update",
 				{ _id: _result._id, status: constants.sale_finish });
 
+			//clear cache	
+			this.broker.cacher.clean("posorder-**");
+			this.broker.cacher.clean("possale-**");
+			this.broker.cacher.clean("possaledetail-**");
+
+			return _resultSale;
 
 		},
 		async setNoti(ctx, params) {
 			await ctx.call("v1.possocket.broadcast", params);
 			await ctx.call("v1.posnoti.create", params.data);
+			this.broker.cacher.clean("posnoti-**");
 		},
 		async getByID(ctx) {
 			const _collection = ctx.params.collection;
@@ -715,6 +742,7 @@ module.exports = {
 			const _collection = ctx.params.collection;
 			const _result = await ctx.call("v1." + _collection + ".update",
 				ctx.params);
+			this.broker.cacher.clean(_collection + "-**");
 			return _result;
 		},
 		async addOrderInfo(ctx) {
@@ -727,6 +755,8 @@ module.exports = {
 			ctx.params.customer = _order.customer;
 			const _result = await ctx.call("v1.posordertrack.create",
 				ctx.params);
+			
+			this.broker.cacher.clean("posordertrack-**");
 			return _result;
 		},
 		async getInvoice(ctx) {
@@ -764,6 +794,8 @@ module.exports = {
 			await ctx.call("v1.possale.update",
 				{ id: ctx.params.id, deleteFlag: true });
 
+			this.broker.cacher.clean("possale-**");	
+			this.broker.cacher.clean("possaledetail-**");
 			return true;
 
 
@@ -805,6 +837,11 @@ module.exports = {
 			{ id: posuser._id, lastLoggedInDate: Date.now(), loginFail: _fails + 1});
 			return "You only have (" + _remainingLimit + ") login attempt left";
 		},
+		emitEvent(ctx){
+			this.setNoti(ctx, {
+				event: ctx.params.event, data: ctx.params.data
+			});
+		}
 
 	},
 

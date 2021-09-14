@@ -81,10 +81,10 @@ module.exports = {
 		},
 		getbyid: {
 			cache: {
-                // Cache key:  
-                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
-                ttl: 30
-            },
+				// Cache key:  
+				//keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+				ttl: 30
+			},
 			params: {
 			},
 			async handler(ctx) {
@@ -106,10 +106,10 @@ module.exports = {
 		},
 		getitems: {
 			cache: {
-                // Cache key:  
-                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
-                ttl: 30
-            },
+				// Cache key:  
+				//keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+				ttl: 30
+			},
 			params: {
 			},
 			async handler(ctx) {
@@ -129,10 +129,10 @@ module.exports = {
 		},
 		findDistinct:{
 			cache: {
-                // Cache key:  
-                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
-                ttl: 30
-            },
+				// Cache key:  
+				//keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+				ttl: 30
+			},
 			params: {
 			},
 			async handler(ctx) {
@@ -180,10 +180,10 @@ module.exports = {
 		},
 		salesummary: {
 			cache: {
-                // Cache key:  
-                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
-                ttl: 30
-            },
+				// Cache key:  
+				//keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+				ttl: 30
+			},
 			params: {
 			},
 			async handler(ctx) {
@@ -195,10 +195,10 @@ module.exports = {
 		},
 		saletop: {
 			cache: {
-                // Cache key:  
-                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
-                ttl: 30
-            },
+				// Cache key:  
+				//keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+				ttl: 30
+			},
 			params: {
 			},
 			async handler(ctx) {
@@ -210,10 +210,10 @@ module.exports = {
 		},
 		saledetailsummary: {
 			cache: {
-                // Cache key:  
-                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
-                ttl: 30
-            },
+				// Cache key:  
+				//keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+				ttl: 30
+			},
 			params: {
 			},
 			async handler(ctx) {
@@ -225,10 +225,10 @@ module.exports = {
 		},
 		saledetailtop: {
 			cache: {
-                // Cache key:  
-                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
-                ttl: 30
-            },
+				// Cache key:  
+				//keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+				ttl: 30
+			},
 			params: {
 			},
 			async handler(ctx) {
@@ -240,10 +240,10 @@ module.exports = {
 		},
 		ordersummary: {
 			cache: {
-                // Cache key:  
-                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
-                ttl: 30
-            },
+				// Cache key:  
+				//keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+				ttl: 30
+			},
 			params: {
 			},
 			async handler(ctx) {
@@ -255,10 +255,10 @@ module.exports = {
 		},
 		orderdetailsummary: {
 			cache: {
-                // Cache key:  
-                //keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
-                ttl: 30
-            },
+				// Cache key:  
+				//keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+				ttl: 30
+			},
 			params: {
 			},
 			async handler(ctx) {
@@ -266,6 +266,18 @@ module.exports = {
 				// eslint-disable-next-line require-atomic-updates
 				ctx.params.owner = _owner._id;
 				return await this.orderDetailSummary(ctx);
+			}
+		},
+		saleLogin: {
+			cache: {
+				// Cache key:  
+				//keys: ["collection","page", "pageSize", "populate","query","sort","search","searchFields","uid"],
+				ttl: 5
+			},
+			params: {
+			},
+			async handler(ctx) {
+				return await this.saleLogin(ctx);
 			}
 		},
 	},
@@ -308,7 +320,7 @@ module.exports = {
 			}
 			console.log("_data",_data);
 			const _result = await ctx.call("v1.auth.update",  
-			_data);
+				_data);
 			return _result;
 		},
 		async getOwner(ctx) {
@@ -348,7 +360,7 @@ module.exports = {
 				let _params = Object.assign({},ctx.params.values);
 				_params.id = id;
 				const _result = await ctx.call("v1."+_collection+".update",  
-				_params);
+					_params);
 				_results.push(_result);
 				
 			}
@@ -356,7 +368,7 @@ module.exports = {
 			
 		},
  		async getItems(ctx ) {
-			console.log(ctx.params);
+			//console.log(ctx.params);
 			const _collection = ctx.params.collection;
 			return await ctx.call("v1."+_collection+".list", ctx.params);
 		},
@@ -365,6 +377,7 @@ module.exports = {
 			const _collection = ctx.params.collection;
 			const _result = await ctx.call("v1."+_collection+".create",  
 				ctx.params);
+			this.broker.cacher.clean(ctx.params.collection + "-**");
 			return _result;
 		},
 		async updateItem(ctx) {
@@ -376,6 +389,7 @@ module.exports = {
 			
 			const _result = await ctx.call("v1."+_collection+".update",  
 				ctx.params);
+			this.broker.cacher.clean(ctx.params.collection + "-**");
 			return _result;
 		},
 		async saleSummary(ctx ) {
@@ -395,6 +409,62 @@ module.exports = {
 		},
 		async orderDetailSummary(ctx ) {
 			return await ctx.call("v1.posorderdetail.summary", ctx.params);
+		},
+
+		async saleLogin(ctx) {
+			const _owner = await this.getOwner(ctx);
+			
+			if (_owner) {
+				const _users = await ctx.call("v1.posuser.find", {
+					query: {
+						owner:_owner._id,
+						name: ctx.params.name,
+						shop: ctx.params.shop
+					}
+				});
+				
+				if (_users && _users.length > 0) {
+
+					let _loginUser = Object.assign({}, _users[0]);
+				
+					const _accessToken = await ctx.call("v1.jwt.signToken", {
+						data: {
+							_id:_owner.owner,
+							owner: _owner._id,
+							user: _loginUser._id,
+						}
+					});
+						// eslint-disable-next-line require-atomic-updates
+					ctx.meta.$responseHeaders = {
+						"accessToken": _accessToken
+					};
+
+					const _user = {
+						createdAt: _loginUser.createdAt,
+						description: _loginUser.description,
+						email: _loginUser.email,
+						fullName: _loginUser.fullName,
+						mobile: _loginUser.mobile,
+						name: _loginUser.name,
+						owner: _loginUser.owner,
+						photo: _loginUser.photo,
+						shop: _loginUser.shop,
+						uid: _loginUser.uid,
+						_id: _loginUser._id
+					};
+
+				
+					return _user;
+				
+				}
+				else {
+					throw "User not found";
+				}
+			}
+			else {
+				throw "Owner not found";
+			}
+
 		},
 	},
 

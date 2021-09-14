@@ -87,7 +87,10 @@ let POSShopSchema = new Schema({
 		type: String,
 		trim: true,
 		index: true,
-    },
+	},
+	isPublic: {
+		type: Boolean, default: false, index: true
+	},
 	locked: {
 		type: Boolean, default: false, index: true
 	},

@@ -1,7 +1,7 @@
 
 {
-	"mongo_uri":  "mongodb+srv://root:12345@cluster0-qmila.mongodb.net/micro-sso?retryWrites=true&w=majority",
-	"mongo_uri2": "mongodb://localhost:27017,localhost:27018,localhost:27019/micro-sso?replicaSet=rs",
+	"mongo_uri2":  "mongodb+srv://root:12345@cluster0-qmila.mongodb.net/micro-sso?retryWrites=true&w=majority",
+	"mongo_uri": "mongodb://localhost:27017,localhost:27018,localhost:27019/micro-sso?replicaSet=rs",
 	"admin_email": "aungphyokhine.dev@gmail.com",
 	"daily_limit":500,
 	"hourly_limit":50,

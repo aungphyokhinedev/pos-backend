@@ -19,8 +19,7 @@ let POSItemSchema = new Schema({
     category: {
 		type: Schema.Types.ObjectId, 
 		ref: "poscategory",
-		index: true,
-		required: "Category ID is required",
+		index: true
     },
     itemCode: {
 		type: String,

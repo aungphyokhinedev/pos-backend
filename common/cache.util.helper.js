@@ -6,7 +6,8 @@ const isExist = function(name,key){
 
 
 const keyGenerator = function(name, params, meta, keys) {
-    let _key = name + ":";
+	let _collection = params.collection ? params.collection + "-" : "";
+    let _key = _collection + name + ":";
    
 
 	if(isExist(name,"posadmin")){
@@ -81,6 +82,7 @@ const keyGenerator = function(name, params, meta, keys) {
 	// params - ctx.params
 	// meta - ctx.meta
 	// keys - cache keys defined in action
+	
 	return _key;
 };
 module.exports = {keyGenerator};

@@ -40,6 +40,10 @@ let POSShopItemSchema = new Schema({
 		index: true,
 		required: "Description is required"
     },
+	originalPrice: {
+		type: Number,
+		default: 0
+	},
     unitPrice: {
 		type: Number,
 		default: 0
@@ -58,7 +62,6 @@ let POSShopItemSchema = new Schema({
 		type: Schema.Types.ObjectId, 
 		ref: "poscategory",
 		index: true,
-		required: "Category ID is required",
     },
 	options: {
 		type: String, 

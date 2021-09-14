@@ -4,16 +4,15 @@
 const DbService = require("moleculer-db");
 const MongooseAdapter = require("moleculer-db-adapter-mongoose");
 const settings = require("../config/settings.json");
-const posStockModel = require("../models/pos.stock.model");
+const posPaymentModel = require("../models/pos.payment.model");
 const authorizationMixin = require("../mixin/authorization.mixin");
-const stockupdateMixin = require("../mixin/stockupdate.mixin");
 module.exports = {
-	name: "posstock",
+	name: "payment",
 	version: 1,
-	mixins: [DbService,authorizationMixin,stockupdateMixin],
+	mixins: [DbService,authorizationMixin],
 
 	adapter: new MongooseAdapter(process.env.MONGO_URI || settings.mongo_uri, { "useUnifiedTopology": true }),
-	model: posStockModel,
+	model: posPaymentModel,
 
 	//collection: "users",
 	/**
@@ -27,23 +26,29 @@ module.exports = {
 				params: {
 					fields: "email _id"
 				}
-			},
-			"owner": {
+            },
+            "owner": {
 				action: "v1.posowner.get",
 				params: {
-					fields: "name companyName _id"
+					fields: "name _id"
+				}
+            },
+            "customer": {
+				action: "v1.poscustomer.get",
+				params: {
+					fields: "name _id customerId"
 				}
 			},
 			"shop": {
 				action: "v1.posshop.get",
 				params: {
-					fields: "name _id"
+					fields: "name  _id address mobile"
 				}
 			},
-			"item": {
-				action: "v1.positem.get",
+			"user": {
+				action: "v1.posuser.get",
 				params: {
-					fields: "name _id"
+					fields: "name  _id fullName"
 				}
 			},
 		}
@@ -69,18 +74,15 @@ module.exports = {
 	actions: {
 		hello() {
 
-			return "Hello POS Stock";
+			return "Hello POS Payment";
 		},
-		
 
 	},
 	hooks: {
 		before: {
 			"*": ["checkOwner"],		
-			update: ["beforeUpdatingStock"]
 		},
 		after: {
-			create: ["onCreatedStock"],
 			
 		}
 	},
@@ -88,7 +90,7 @@ module.exports = {
 	 * Events
 	 */
 	events: {
-      
+
 	},
 
 	/**
